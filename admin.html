@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>网站管理 · 游祥龙艺术工作室</title>
+    <meta
+      name="description"
+      content="游祥龙艺术工作室管理后台 — 作品管理、艺术家资料、人员与咨询记录维护。"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="index.html" aria-label="游祥龙艺术工作室">
+        <span class="brand-mark">YX</span>
+        <span>
+          <strong data-i18n="brandName">游祥龙艺术工作室</strong>
+          <small data-i18n="brandSub">油画 · 风景 · 人物</small>
+        </span>
+      </a>
+      <nav class="main-nav" aria-label="Admin navigation">
+        <a href="index.html" data-i18n="navGallery">作品</a>
+        <a href="index.html#artist" data-i18n="navArtist">艺术家</a>
+        <a href="index.html#contact" data-i18n="navContact">收藏咨询</a>
+      </nav>
+      <div class="header-actions">
+        <button class="ghost-button" id="languageToggle" type="button">EN</button>
+        <button class="menu-button" id="menuToggle" type="button" aria-label="Menu">☰</button>
+      </div>
+    </header>
+
+    <main>
+      <section class="section admin-section" id="admin">
+        <div class="section-heading">
+          <p data-i18n="adminKicker">Management</p>
+          <h2 data-i18n="adminTitle">网站管理</h2>
+        </div>
+
+        <div class="admin-tabs">
+          <button class="tab is-active" data-admin-tab="works" data-i18n="tabWorks" type="button">作品管理</button>
+          <button class="tab" data-admin-tab="artist" data-i18n="tabArtist" type="button">艺术家资料</button>
+          <button class="tab" data-admin-tab="people" data-i18n="tabPeople" type="button">人员</button>
+          <button class="tab" data-admin-tab="inquiries" data-i18n="tabInquiries" type="button">咨询记录</button>
+        </div>
+
+        <!-- 作品管理 -->
+        <div class="admin-panel" id="adminWorks">
+          <form class="admin-form" id="workForm">
+            <input id="workId" type="hidden" />
+            <div class="form-grid">
+              <label>
+                <span data-i18n="titleZh">中文标题</span>
+                <input id="titleZh" />
+              </label>
+              <label>
+                <span data-i18n="titleEn">英文标题</span>
+                <input id="titleEn" />
+              </label>
+              <label>
+                <span data-i18n="category">系列/类别</span>
+                <input id="category" />
+              </label>
+              <label>
+                <span data-i18n="medium">媒介</span>
+                <input id="medium" />
+              </label>
+              <label>
+                <span data-i18n="size">尺寸</span>
+                <input id="size" />
+              </label>
+              <label>
+                <span data-i18n="year">年份</span>
+                <input id="year" />
+              </label>
+              <label>
+                <span data-i18n="price">价格</span>
+                <input id="price" />
+              </label>
+              <label>
+                <span data-i18n="status">状态</span>
+                <select id="status"></select>
+              </label>
+            </div>
+            <label class="checkbox-line">
+              <input id="hidePrice" type="checkbox" />
+              <span data-i18n="hidePrice">不公开价格</span>
+            </label>
+            <label>
+              <span data-i18n="imageUpload">上传作品图片</span>
+              <input id="imageUpload" type="file" accept="image/*" />
+            </label>
+            <label>
+              <span data-i18n="descriptionZh">中文简介</span>
+              <textarea id="descriptionZh" rows="3"></textarea>
+            </label>
+            <label>
+              <span data-i18n="descriptionEn">英文简介</span>
+              <textarea id="descriptionEn" rows="3"></textarea>
+            </label>
+            <div class="form-actions">
+              <button class="primary-button" type="submit" data-i18n="saveWork">保存作品</button>
+              <button class="secondary-button" type="button" id="resetWorkForm" data-i18n="newWork">新增作品</button>
+            </div>
+          </form>
+          <div class="admin-list" id="workAdminList"></div>
+        </div>
+
+        <!-- 艺术家资料 -->
+        <div class="admin-panel" id="adminArtist" hidden>
+          <form class="admin-form" id="artistForm">
+            <label>
+              <span data-i18n="artistNameLabel">艺术家姓名</span>
+              <input id="artistNameInput" />
+            </label>
+            <label>
+              <span data-i18n="artistBioZh">中文简介</span>
+              <textarea id="artistBioZh" rows="4"></textarea>
+            </label>
+            <label>
+              <span data-i18n="artistBioEn">英文简介</span>
+              <textarea id="artistBioEn" rows="4"></textarea>
+            </label>
+            <label>
+              <span data-i18n="portraitUpload">上传肖像</span>
+              <input id="portraitUpload" type="file" accept="image/*" />
+            </label>
+            <div class="form-actions">
+              <button class="primary-button" type="submit" data-i18n="saveArtist">保存艺术家资料</button>
+            </div>
+          </form>
+          <div></div>
+        </div>
+
+        <!-- 人员管理 -->
+        <div class="admin-panel" id="adminPeople" hidden>
+          <form class="admin-form compact-form" id="peopleForm">
+            <label>
+              <span data-i18n="personName">人员姓名</span>
+              <input id="personName" />
+            </label>
+            <label>
+              <span data-i18n="personRole">角色</span>
+              <select id="personRole"></select>
+            </label>
+            <button class="primary-button" type="submit" data-i18n="addPerson">添加人员</button>
+          </form>
+          <div class="admin-list" id="peopleList"></div>
+        </div>
+
+        <!-- 咨询记录 -->
+        <div class="admin-panel" id="adminInquiries" hidden>
+          <div></div>
+          <div class="admin-list" id="inquiryList"></div>
+        </div>
+      </section>
+    </main>
+
+    <!-- 密码弹窗 -->
+    <div id="adminModal" hidden>
+      <div class="modal-overlay">
+        <div class="modal-box">
+          <h3 data-i18n="adminLogin">管理后台</h3>
+          <p data-i18n="adminLoginHint">请输入密码进入管理后台。</p>
+          <input id="adminPasswordInput" type="password" autocomplete="current-password" />
+          <p id="adminPasswordError" class="form-note" style="color: var(--accent);"></p>
+          <div class="modal-actions">
+            <button class="primary-button" id="adminLoginBtn" data-i18n="adminLoginBtn" type="button">进入</button>
+            <button class="secondary-button" id="adminCancelBtn" data-i18n="adminCancelBtn" type="button">取消</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <footer class="site-footer">
+      <span data-i18n="footerText">游祥龙艺术工作室 · 本地预览版</span>
+      <a href="index.html" data-i18n="footerAdmin">返回首页</a>
+    </footer>
+
+    <script src="common.js"></script>
+    <script src="admin.js"></script>
+  </body>
+</html>
