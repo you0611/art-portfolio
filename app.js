@@ -16,25 +16,22 @@ function renderGallery() {
     const matchesAvailability = availability === "all" || work.status === availability;
     return matchesSearch && matchesCategory && matchesAvailability;
   });
-
-  byId("artGrid").innerHTML =
-    works
-      .map(
-        (work) => `
-        <article class="art-card" tabindex="0" data-work-id="${work.id}">
-          <a href="works/${work.id}.html" class="card-link" aria-label="${localText(work, "titleZh", "titleEn")}">
-            <figure><img src="${work.image}" alt="${localText(work, "titleZh", "titleEn")}" /></figure>
-            <div class="art-card-body">
-              <h3>${localText(work, "titleZh", "titleEn")}<span class="badge">${t(work.status)}</span></h3>
-              <div class="meta-line">${work.medium} · ${work.size} · ${work.year}</div>
-              <div class="price-line">${work.hidePrice || !work.price ? t("priceOnRequest") : work.price}</div>
-            </div>
-          </a>
-        </article>`
-      )
-      .join("") || `<div class="empty-state">${t("empty")}</div>`;
+  const gridSlots = 12;
+  let html = "";
+  const firstWork = works.length > 0 ? works[0] : null;
+  for (let i = 0; i < gridSlots; i++) {
+    if (i === 11) {
+      html += '<article class="art-card more-card"><a href="works.html" class="card-link" style="position:relative;overflow:hidden;">' + (firstWork ? '<img src="' + firstWork.image + '" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:brightness(0.35);" />' : '') + '<div class="more-content"><span class="more-icon">+</span><span>' + t("moreWorks") + '</span></div></a></article>';
+      continue;
+    }
+    const work = works[i];
+    if (!work) { html += '<div class="art-card empty-slot"></div>'; continue; }
+    const title = localText(work, "titleZh", "titleEn");
+    const price = work.hidePrice || !work.price ? t("priceOnRequest") : work.price;
+    html += '<article class="art-card" tabindex="0" data-work-id="' + work.id + '"><a href="works/' + work.id + '.html" class="card-link"><figure><img src="' + work.image + '" alt="' + title + '" /></figure><div class="art-card-body"><h3>' + title + '<span class="badge">' + t(work.status) + '</span></h3><div class="meta-line">' + work.medium + ' · ' + work.size + ' · ' + work.year + '</div><div class="price-line">' + price + '</div></div></a></article>';
+  }
+  byId("artGrid").innerHTML = html;
 }
-
 function renderDetail(workId) {
   const work = state.works.find((item) => item.id === workId);
   if (!work) return;
@@ -176,10 +173,9 @@ byId("heroDots").addEventListener("click", (event) => {
   startSlideshow();
 });
 
-renderHeroDots();
-startSlideshow();
-byId("adminEntry").addEventListener("click", (event) => {
-  event.preventDefault();
+// 管理入口：弹密码 → 正确才跳转
+byId("adminEntry").addEventListener("click", (e) => {
+  e.preventDefault();
   showAdminModal();
 });
 
@@ -194,12 +190,9 @@ byId("adminLoginBtn").addEventListener("click", () => {
   }
 });
 
-byId("adminCancelBtn").addEventListener("click", () => {
-  hideAdminModal();
-});
-
-byId("adminPasswordInput").addEventListener("keydown", (event) => {
-  if (event.key === "Enter") byId("adminLoginBtn").click();
+byId("adminCancelBtn").addEventListener("click", () => { hideAdminModal(); });
+byId("adminPasswordInput").addEventListener("keydown", (e) => {
+  if (e.key === "Enter") byId("adminLoginBtn").click();
 });
 
 renderAll();

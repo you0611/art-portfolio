@@ -84,6 +84,9 @@ const translations = {
     adminCancelBtn: "取消",
     adminWrongPassword: "密码错误，请重试。",
     honorsTitle: "展览荣誉",
+    contactPhone: "电话",
+    contactAddress: "画廊地址",
+    moreWorks: "了解更多",
   },
   en: {
     brandName: "You Xianglong Art Studio",
@@ -168,6 +171,9 @@ const translations = {
     adminCancelBtn: "Cancel",
     adminWrongPassword: "Wrong password. Please try again.",
     honorsTitle: "Exhibition Honors",
+    contactPhone: "Phone",
+    contactAddress: "Gallery Address",
+    moreWorks: "More Works",
   },
 };
 
@@ -207,109 +213,140 @@ const starterState = {
   ],
   works: [
     {
-      id: "ta-series-5",
-      titleZh: "她系列五",
-      titleEn: "She Series V",
-      category: "她系列",
-      medium: "布面油画",
-      size: "160 × 130 cm",
-      year: "2021",
-      price: "",
-      hidePrice: true,
-      status: "available",
+      id: "guiquilaixi", titleZh: "归去来兮", titleEn: "Return",
+      category: "风景", medium: "布面油画", size: "90 × 135 cm",
+      year: "2019", price: "", hidePrice: true, status: "available",
+      image: asset("guiquilaixi.jpg"),
+      descriptionZh: "入选\"得境取象\"第二届东亿中国油画作品展。",
+      descriptionEn: "Selected for the 2nd Dongyi China Oil Painting Exhibition.",
+    },
+    {
+      id: "shengsheng-2", titleZh: "笙声不息（二）", titleEn: "Lusheng Sound Never Ends II",
+      category: "民族题材", medium: "布面油画", size: "150 × 120 cm",
+      year: "2022", price: "", hidePrice: true, status: "available",
+      image: asset("shengsheng-2.jpg"),
+      descriptionZh: "2022年入选第三届深圳大芬国际油画双年展（馆藏）。",
+      descriptionEn: "Selected for the 3rd Shenzhen Dafen International Oil Painting Biennale.",
+    },
+    {
+      id: "shengsheng-3", titleZh: "笙声不息（三）", titleEn: "Lusheng Sound Never Ends III",
+      category: "民族题材", medium: "布面油画", size: "150 × 120 cm",
+      year: "2022", price: "", hidePrice: true, status: "available",
+      image: asset("shengsheng-3.jpg"),
+      descriptionZh: "笙声不息系列第三幅，以芦笙舞展现民族文化生命力。",
+      descriptionEn: "Third in the Lusheng series, celebrating ethnic cultural vitality.",
+    },
+    {
+      id: "chengzhongcun", titleZh: "城中村——红色记忆", titleEn: "Urban Village – Red Memory",
+      category: "城市记忆", medium: "布面油画", size: "130 × 160 cm",
+      year: "2020", price: "", hidePrice: true, status: "sold",
+      image: asset("chengzhongcun.jpg"),
+      descriptionZh: "记录城市化进程中的空间记忆与色彩张力。",
+      descriptionEn: "Spatial memory and color tension in urbanization.",
+    },
+    {
+      id: "banyan", titleZh: "池塘边的大榕树", titleEn: "Banyan by the Pond",
+      category: "风景", medium: "布面油画", size: "122 × 155 cm",
+      year: "2020", price: "", hidePrice: true, status: "sold",
+      image: asset("banyan.jpg"),
+      descriptionZh: "描绘南方乡间的静谧与生命力。",
+      descriptionEn: "Serenity and vitality of the southern countryside.",
+    },
+    {
+      id: "on-the-road", titleZh: "路上", titleEn: "On the Road",
+      category: "人物与叙事", medium: "布面油画", size: "180 × 130 cm",
+      year: "2020", price: "", hidePrice: true, status: "available",
+      image: asset("on-the-road.jpg"),
+      descriptionZh: "入选第九届全国（大芬）青年油画作品展。",
+      descriptionEn: "Selected for the 9th National Youth Oil Painting Exhibition.",
+    },
+    {
+      id: "she-series-1", titleZh: "她系列（一）", titleEn: "She Series I",
+      category: "她系列", medium: "布面油画", size: "150 × 120 cm",
+      year: "2020", price: "", hidePrice: true, status: "available",
+      image: asset("she-series-1.jpg"),
+      descriptionZh: "2021年入选第五届「时代之光」中国油画展，入会资格。",
+      descriptionEn: "Selected for the 5th Light of the Era China Oil Painting Exhibition.",
+    },
+    {
+      id: "she-series-2", titleZh: "她系列（二）", titleEn: "She Series II",
+      category: "她系列", medium: "布面油画", size: "120 × 150 cm",
+      year: "2020", price: "", hidePrice: true, status: "available",
+      image: asset("she-series-2.jpg"),
+      descriptionZh: "2021年入选首届「倪云林」全国美术作品展。",
+      descriptionEn: "Selected for the 1st Ni Yunlin National Art Exhibition.",
+    },
+    {
+      id: "she-series-3", titleZh: "她系列（三）", titleEn: "She Series III",
+      category: "她系列", medium: "布面油画", size: "150 × 120 cm",
+      year: "2021", price: "", hidePrice: true, status: "available",
+      image: asset("she-series-3.jpg"),
+      descriptionZh: "2021年入选「江南如画」中国油画作品展。",
+      descriptionEn: "Selected for the 2021 Jiangnan as in Painting Exhibition.",
+    },
+    {
+      id: "shengsheng-1", titleZh: "笙声不息（一）", titleEn: "Lusheng Sound Never Ends I",
+      category: "民族题材", medium: "布面油画", size: "150 × 120 cm",
+      year: "2022", price: "", hidePrice: true, status: "sold",
+      image: asset("shengsheng-1.jpg"),
+      descriptionZh: "2022年入选全国少数民族美术作品展，馆藏于北京民族文化宫。",
+      descriptionEn: "Selected for the 2022 National Minority Art Exhibition.",
+    },
+    {
+      id: "ta-series-5", titleZh: "她系列五", titleEn: "She Series V",
+      category: "她系列", medium: "布面油画", size: "160 × 130 cm",
+      year: "2021", price: "", hidePrice: true, status: "available",
       image: asset("ta-series-5.jpg"),
-      descriptionZh: "2022年入选\"悲鸿风度\"首届油画双年展，入会资格。",
-      descriptionEn: "Selected for the 1st Beihong Grace Oil Painting Biennale in 2022, membership qualification.",
+      descriptionZh: "2022年入选\"悲鸿风度\"首届油画双年展。",
+      descriptionEn: "Selected for the 1st Beihong Grace Oil Painting Biennale.",
     },
     {
-      id: "jiangnan-2024",
-      titleZh: "江南",
-      titleEn: "Jiangnan",
-      category: "江南系列",
-      medium: "布面油画",
-      size: "140 × 160 cm",
-      year: "2024",
-      price: "",
-      hidePrice: true,
-      status: "available",
+      id: "jiangnan-2024", titleZh: "江南", titleEn: "Jiangnan",
+      category: "江南系列", medium: "布面油画", size: "140 × 160 cm",
+      year: "2024", price: "", hidePrice: true, status: "available",
       image: asset("jiangnan-2024.jpg"),
-      descriptionZh: "以江南水乡的湿润光色为线索，描绘空间、记忆与自然气息之间的交错。",
-      descriptionEn: "A Jiangnan waterscape built from humid light, memory, and the quiet rhythm of place.",
+      descriptionZh: "以江南水乡的湿润光色为线索。",
+      descriptionEn: "A Jiangnan waterscape of humid light and quiet rhythm.",
     },
     {
-      id: "jiangnan-series-6",
-      titleZh: "江南系列六",
-      titleEn: "Jiangnan Series VI",
-      category: "江南系列",
-      medium: "布面油画",
-      size: "120 × 120 cm",
-      year: "2025",
-      price: "",
-      hidePrice: true,
-      status: "available",
+      id: "jiangnan-series-6", titleZh: "江南系列六", titleEn: "Jiangnan Series VI",
+      category: "江南系列", medium: "布面油画", size: "120 × 120 cm",
+      year: "2025", price: "", hidePrice: true, status: "available",
       image: asset("jiangnan-series-6.jpg"),
-      descriptionZh: "方形构图中的江南意象，强调水面、岸线与远处建筑的诗性秩序。",
-      descriptionEn: "A square-format Jiangnan image balancing water, banks, and distant architecture.",
+      descriptionZh: "方形构图中的江南诗性秩序。",
+      descriptionEn: "A square-format Jiangnan poetic order.",
     },
     {
-      id: "grass-2024",
-      titleZh: "小草",
-      titleEn: "Grass",
-      category: "人物与叙事",
-      medium: "布面油画",
-      size: "120 × 120 cm",
-      year: "2024",
-      price: "",
-      hidePrice: true,
-      status: "available",
+      id: "grass-2024", titleZh: "小草", titleEn: "Grass",
+      category: "人物与叙事", medium: "布面油画", size: "120 × 120 cm",
+      year: "2024", price: "", hidePrice: true, status: "available",
       image: asset("grass-2024.jpg"),
-      descriptionZh: "作品关注普通生命的韧性，以人物姿态和色彩关系表达安静而持续的生长。",
-      descriptionEn: "A figure painting about resilience, quiet growth, and the dignity of ordinary life.",
+      descriptionZh: "关注普通生命的韧性。",
+      descriptionEn: "Resilience of ordinary life.",
     },
     {
-      id: "flower-2025",
-      titleZh: "花非花",
-      titleEn: "Flower, Not Flower",
-      category: "人物与叙事",
-      medium: "布面油画",
-      size: "120 × 120 cm",
-      year: "2025",
-      price: "",
-      hidePrice: true,
-      status: "available",
+      id: "flower-2025", titleZh: "花非花", titleEn: "Flower, Not Flower",
+      category: "人物与叙事", medium: "布面油画", size: "120 × 120 cm",
+      year: "2025", price: "", hidePrice: true, status: "available",
       image: asset("flower-2025.jpg"),
-      descriptionZh: "在具象与意象之间展开，借花与人的关系呈现一种含蓄的心理气氛。",
-      descriptionEn: "A painting between figuration and suggestion, using floral imagery to shape a restrained psychological atmosphere.",
+      descriptionZh: "在具象与意象之间展开。",
+      descriptionEn: "Between figuration and suggestion.",
     },
     {
-      id: "jiangnan-trip",
-      titleZh: "江南行",
-      titleEn: "Journey to Jiangnan",
-      category: "江南系列",
-      medium: "布面油画",
-      size: "130 × 160 cm",
-      year: "2019",
-      price: "",
-      hidePrice: true,
-      status: "sold",
+      id: "jiangnan-trip", titleZh: "江南行", titleEn: "Journey to Jiangnan",
+      category: "江南系列", medium: "布面油画", size: "130 × 160 cm",
+      year: "2019", price: "", hidePrice: true, status: "sold",
       image: asset("jiangnan-trip.jpg"),
-      descriptionZh: "入选\"诗意大运河\"2019年全国油画作品展，作品作为江苏交通版权卡出版发行。",
-      descriptionEn: "Selected for the 2019 national oil painting exhibition Poetic Grand Canal and published as a Jiangsu transport copyright card.",
+      descriptionZh: "入选\"诗意大运河\"2019年全国油画作品展。",
+      descriptionEn: "Selected for the 2019 Poetic Grand Canal Exhibition.",
     },
     {
-      id: "cai-lusheng",
-      titleZh: "踩芦笙",
-      titleEn: "Cai Lusheng",
-      category: "民族题材",
-      medium: "布面油画",
-      size: "160 × 130 cm",
-      year: "2020",
-      price: "",
-      hidePrice: true,
-      status: "sold",
+      id: "cai-lusheng", titleZh: "踩芦笙", titleEn: "Cai Lusheng",
+      category: "民族题材", medium: "布面油画", size: "160 × 130 cm",
+      year: "2020", price: "", hidePrice: true, status: "sold",
       image: asset("cai-lusheng.jpg"),
       descriptionZh: "入选\"百年梦圆2020\"中国百家金陵油画作品展并获收藏奖。",
-      descriptionEn: "Selected for the 2020 China Baijia Jinling Oil Painting Exhibition and received the Collection Award.",
+      descriptionEn: "Selected for the 2020 Baijia Jinling Exhibition, Collection Award.",
     },
   ],
   people: [
@@ -318,6 +355,23 @@ const starterState = {
   ],
   inquiries: [],
 };
+
+const DATA_VERSION = 2;
+const clone = typeof structuredClone === "function" ? structuredClone : function(obj) { return JSON.parse(JSON.stringify(obj)); };
+
+function loadState() {
+  const saved = localStorage.getItem("yx-site-v2");
+  const ver = localStorage.getItem("yx-ver");
+  if (!saved || ver != DATA_VERSION) {
+    localStorage.setItem("yx-ver", DATA_VERSION);
+    return clone(starterState);
+  }
+  try {
+    return { ...clone(starterState), ...JSON.parse(saved) };
+  } catch {
+    return clone(starterState);
+  }
+}
 
 let state = loadState();
 let selectedImageData = "";
@@ -343,19 +397,8 @@ function showAdminModal() {
 function hideAdminModal() {
   byId("adminModal").hidden = true;
 }
-
-function loadState() {
-  const saved = localStorage.getItem("you-xianglong-site");
-  if (!saved) return structuredClone(starterState);
-  try {
-    return { ...structuredClone(starterState), ...JSON.parse(saved) };
-  } catch {
-    return structuredClone(starterState);
-  }
-}
-
 function saveState() {
-  localStorage.setItem("you-xianglong-site", JSON.stringify(state));
+  localStorage.setItem("yx-site-v2", JSON.stringify(state));
 }
 
 function t(key) {

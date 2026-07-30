@@ -1,0 +1,13 @@
+<!doctype html>
+<html><body>
+<script>
+// 测试 localStorage 是否可用
+try {
+  localStorage.setItem("test", "1");
+  localStorage.removeItem("test");
+  document.body.innerHTML = "<h2>localStorage works</h2>";
+} catch(e) {
+  document.body.innerHTML = "<h2>localStorage ERROR: " + e.message + "</h2>";
+}
+</script>
+</body></html>

@@ -11,6 +11,39 @@
   --shadow: 0 16px 45px rgba(23, 22, 22, 0.12);
 }
 
+/* ===== 迎宾页 ===== */
+.splash-body { margin:0; overflow:hidden; background:#111; font-family:"Noto Serif SC","Source Han Serif SC",Georgia,"Times New Roman",serif; }
+.splash { position:fixed; inset:0; display:grid; place-items:center; overflow:hidden; }
+.splash-slides { position:absolute; inset:0; }
+.splash-slides img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; opacity:0.82; transition:opacity 0.8s ease; }
+.splash::after { content:""; position:absolute; inset:0; z-index:1; background:linear-gradient(135deg,rgba(0,0,0,0.7)0%,rgba(0,0,0,0.2)50%,rgba(0,0,0,0.5)100%); }
+.splash-content { position:relative; z-index:2; text-align:center; color:#fff; padding:20px; }
+.splash-kicker { margin:0 0 8px; font-size:clamp(28px,4vw,52px); letter-spacing:6px; text-transform:uppercase; font-weight:300; }
+.splash-sub { margin:0 0 48px; font-size:clamp(13px,1.2vw,16px); color:rgba(255,255,255,0.5); letter-spacing:2px; }
+
+.splash-enter { display:inline-flex; align-items:center; justify-content:center; min-width:140px; height:50px; border:1px solid rgba(255,255,255,0.6); color:#fff; background:transparent; font-size:16px; letter-spacing:4px; text-decoration:none; border-radius:2px; transition:all 0.4s ease; }
+.splash-enter:hover { background:#fff; color:var(--ink); transform:scale(1.06); }
+
+.splash-arrow { position:absolute; top:50vh; transform:translateY(-50%); z-index:3; width:32px; height:80px; border:none; background:rgba(0,0,0,0.15); color:rgba(255,255,255,0.5); font-size:24px; cursor:pointer; transition:background 0.3s,color 0.3s; display:flex; align-items:center; justify-content:center; padding:0; }
+.splash-arrow:hover { background:rgba(0,0,0,0.4); color:#fff; }
+.splash-prev { left:0; border-radius:0 3px 3px 0; }
+.splash-next { right:0; border-radius:3px 0 0 3px; }
+
+.splash-caption { position:absolute; bottom:80px; right:32px; z-index:2; color:rgba(255,255,255,0.7); font-size:13px; letter-spacing:1px; text-shadow:0 1px 6px rgba(0,0,0,0.5); }
+.splash-dots { position:absolute; bottom:36px; left:50%; transform:translateX(-50%); z-index:2; display:flex; gap:10px; }
+.splash-dots button { width:8px; height:8px; border-radius:50%; border:2px solid rgba(255,255,255,0.5); background:transparent; cursor:pointer; padding:0; transition:background 0.3s; }
+.splash-dots button.is-active { background:#fff; border-color:#fff; }
+.splash-lang { position:fixed; top:20px; right:24px; z-index:10; }
+.splash-lang a { color:rgba(255,255,255,0.5); font-size:13px; text-decoration:none; letter-spacing:1px; transition:color 0.3s; }
+.splash-lang a:hover { color:#fff; }
+
+@media (max-width:620px) {
+  .splash-arrow { width:28px; height:60px; font-size:20px; }
+  .splash-prev { left:0; }
+  .splash-next { right:0; }
+  .splash-caption { font-size:11px; right:16px; bottom:70px; }
+}
+
 * {
   box-sizing: border-box;
 }
@@ -54,8 +87,6 @@ img {
   z-index: 10;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 24px;
   padding: 16px clamp(18px, 4vw, 48px);
   background: rgba(248, 245, 238, 0.94);
   border-bottom: 1px solid var(--line);
@@ -98,6 +129,9 @@ img {
   gap: 22px;
   color: var(--muted);
   font-size: 15px;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
 }
 
 .main-nav a:hover {
@@ -108,6 +142,7 @@ img {
   display: flex;
   align-items: center;
   gap: 8px;
+  margin-left: auto;
 }
 
 .ghost-button,
@@ -335,6 +370,25 @@ textarea {
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 22px;
 }
+
+.grid-12 {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.empty-slot {
+  border: 1px dashed var(--line);
+  background: transparent;
+  box-shadow: none;
+  cursor: default;
+  min-height: 0;
+}
+.empty-slot:hover { transform: none; box-shadow: none; }
+
+.more-card { border: none; }
+.more-card .card-link { position:relative; aspect-ratio:4/3; display:flex; align-items:center; justify-content:center; border-radius:6px; overflow:hidden; }
+.more-content { position:relative; z-index:1; text-align:center; color:#fff; }
+.more-icon { display:block; font-size:36px; font-weight:200; margin-bottom:8px; line-height:1; }
+.more-content span:last-child { display:block; font-size:15px; letter-spacing:2px; opacity:0.85; }
 
 .art-card {
   display: grid;
@@ -671,11 +725,16 @@ label span {
 .site-footer {
   display: flex;
   justify-content: space-between;
+  align-items: center;
   gap: 20px;
-  padding: 28px clamp(18px, 5vw, 64px);
-  color: var(--muted);
-  border-top: 1px solid var(--line);
+  padding: 20px clamp(18px,5vw,64px);
+  color: rgba(255,255,255,0.4);
+  background: var(--ink);
+  border-top: none;
+  font-size: 13px;
 }
+.site-footer a { color:rgba(255,255,255,0.3); text-decoration:none; transition:color .3s; }
+.site-footer a:hover { color:rgba(255,255,255,0.6); }
 
 .empty-state {
   padding: 28px;
@@ -684,6 +743,24 @@ label span {
   border: 1px dashed var(--line);
   border-radius: 6px;
 }
+
+/* 联系方式 */
+.contact-info-section {
+  background: var(--ink);
+  color: #fff;
+  padding: 24px clamp(18px,5vw,64px);
+}
+.contact-info-grid {
+  display: grid;
+  grid-template-columns: repeat(2,1fr);
+  gap: 32px;
+  max-width: 500px;
+  margin: 0 0 0 auto;
+}
+.contact-info-card h3 { margin:0 0 6px; font-size:13px; color:rgba(255,255,255,0.4); font-weight:400; text-transform:uppercase; letter-spacing:1px; }
+.contact-info-card a, .contact-info-card p { margin:0; font-size:17px; line-height:1.6; }
+.contact-info-card a { color:#fff; text-decoration:none; }
+.contact-info-card a:hover { color:var(--accent); }
 
 /* 后台密码弹窗 */
 .modal-overlay {
@@ -768,6 +845,7 @@ label span {
   .art-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+  .grid-12 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 
   .detail-copy {
     position: static;
@@ -808,6 +886,7 @@ label span {
   .compact-form {
     grid-template-columns: 1fr;
   }
+  .grid-12 { grid-template-columns: 1fr; }
 
   .admin-item {
     grid-template-columns: 64px 1fr;
