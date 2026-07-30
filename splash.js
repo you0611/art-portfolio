@@ -23,7 +23,6 @@ function t_splash(key) {
 
 function applySplashLang() {
   document.querySelector(".splash-kicker").textContent = t_splash("kicker");
-  document.querySelector(".splash-title").textContent = t_splash("title_zh");
   document.querySelector(".splash-sub").textContent = t_splash("sub");
   document.getElementById("enterBtn").textContent = t_splash("enter");
   document.getElementById("splashLang").textContent = lang === "zh" ? "EN" : "中文";
