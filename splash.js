@@ -47,7 +47,7 @@ function goSlide(i) {
 
 function renderDots() {
   document.getElementById("splashDots").innerHTML = slides
-    .map((_, i) => `<button class="${i === idx ? "is-active" : ""}" data-si="${i}"></button>`)
+    .map((slide, i) => `<button class="${i === idx ? "is-active" : ""}" data-si="${i}" aria-label="${slide[lang]}" aria-current="${i === idx ? "true" : "false"}"></button>`)
     .join("");
 }
 

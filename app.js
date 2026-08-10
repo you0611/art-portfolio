@@ -16,29 +16,35 @@ function renderGallery() {
     const matchesAvailability = availability === "all" || work.status === availability;
     return matchesSearch && matchesCategory && matchesAvailability;
   });
-  const gridSlots = 12;
+  if (!works.length) {
+    byId("artGrid").innerHTML = `<div class="empty-state">${t("galleryEmpty")}</div>`;
+    return;
+  }
+
   let html = "";
-  const firstWork = works.length > 0 ? works[0] : null;
-  for (let i = 0; i < gridSlots; i++) {
-    if (i === 11) {
-      html += '<article class="art-card more-card"><a href="works.html" class="card-link" style="position:relative;overflow:hidden;">' + (firstWork ? '<img src="' + firstWork.image + '" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:brightness(0.35);" />' : '') + '<div class="more-content"><span class="more-icon">+</span><span>' + t("moreWorks") + '</span></div></a></article>';
-      continue;
-    }
-    const work = works[i];
-    if (!work) { html += '<div class="art-card empty-slot"></div>'; continue; }
+  works.slice(0, 8).forEach((work, index) => {
     const title = localText(work, "titleZh", "titleEn");
     const price = work.hidePrice || !work.price ? t("priceOnRequest") : work.price;
-    html += '<article class="art-card" tabindex="0" data-work-id="' + work.id + '"><a href="works/' + work.id + '.html" class="card-link"><figure><img src="' + work.image + '" alt="' + title + '" /></figure><div class="art-card-body"><h3>' + title + '<span class="badge">' + t(work.status) + '</span></h3><div class="meta-line">' + work.medium + ' · ' + work.size + ' · ' + work.year + '</div><div class="price-line">' + price + '</div></div></a></article>';
-  }
+    const href = workDetailHref(work.id);
+    const dynamicDetail = href.startsWith("gallery.html?");
+    html += '<article class="art-card" tabindex="0"' + (dynamicDetail ? ' data-work-id="' + work.id + '"' : '') + '><a href="' + href + '" class="card-link"><figure><img src="' + work.image + '" alt="' + title + '" /></figure><div class="art-card-body"><div class="art-card-heading"><span class="art-card-order">' + String(index + 1).padStart(2, "0") + '</span><span class="badge">' + t(work.status) + '</span></div><h3>' + title + '</h3><div class="meta-line">' + work.medium + ' · ' + work.size + ' · ' + work.year + '</div><div class="price-line">' + price + '</div></div></a></article>';
+  });
+
+  const firstWork = works[0];
+  html += '<article class="art-card more-card"><a href="works.html" class="card-link"><img class="more-card-image" src="' + firstWork.image + '" alt="" /><div class="more-content"><span class="more-icon" aria-hidden="true"></span><span>' + t("moreWorks") + '</span></div></a></article>';
   byId("artGrid").innerHTML = html;
 }
+let currentDetailId = null;
+
 function renderDetail(workId) {
   const work = state.works.find((item) => item.id === workId);
   if (!work) return;
+  currentDetailId = workId;
   byId("workDetail").hidden = false;
   byId("detailLayout").innerHTML = `
     <div class="detail-image"><img src="${work.image}" alt="${localText(work, "titleZh", "titleEn")}" /></div>
     <div class="detail-copy">
+      <span class="detail-record">${work.year || ""} · ${work.medium || ""}</span>
       <h2>${localText(work, "titleZh", "titleEn")}</h2>
       <dl>
         <dt>${t("category")}</dt><dd>${work.category || "-"}</dd>
@@ -88,19 +94,29 @@ function renderAll() {
 
 document.addEventListener("click", (event) => {
   const card = event.target.closest("[data-work-id]");
-  if (card) renderDetail(card.dataset.workId);
+  if (card) {
+    event.preventDefault();
+    history.replaceState(null, "", `?work=${encodeURIComponent(card.dataset.workId)}#workDetail`);
+    renderDetail(card.dataset.workId);
+  }
 });
 
 document.addEventListener("keydown", (event) => {
   if (event.key !== "Enter") return;
   const card = event.target.closest("[data-work-id]");
-  if (card) renderDetail(card.dataset.workId);
+  if (card) {
+    event.preventDefault();
+    history.replaceState(null, "", `?work=${encodeURIComponent(card.dataset.workId)}#workDetail`);
+    renderDetail(card.dataset.workId);
+  }
 });
 
 byId("languageToggle").addEventListener("click", () => {
   state.language = state.language === "zh" ? "en" : "zh";
   saveState();
   renderAll();
+  if (currentDetailId) renderDetail(currentDetailId);
+  goToSlide(heroIndex);
 });
 
 byId("menuToggle").addEventListener("click", () => {
@@ -109,6 +125,8 @@ byId("menuToggle").addEventListener("click", () => {
 
 byId("closeDetail").addEventListener("click", () => {
   byId("workDetail").hidden = true;
+  currentDetailId = null;
+  history.replaceState(null, "", `${location.pathname}#gallery`);
   byId("gallery").scrollIntoView({ behavior: "smooth" });
 });
 
@@ -133,33 +151,44 @@ byId("inquiryForm").addEventListener("submit", (event) => {
 
 // 首页轮播
 const heroSlides = [
-  "assets/jiangnan-2024.jpg",
-  "assets/jiangnan-series-6.jpg",
-  "assets/flower-2025.jpg",
-  "assets/grass-2024.jpg",
-  "assets/ta-series-5.jpg",
+  "jiangnan-2024",
+  "jiangnan-series-6",
+  "flower-2025",
+  "grass-2024",
+  "ta-series-5",
 ];
 let heroIndex = 0;
 let heroTimer = null;
 
 function renderHeroDots() {
   byId("heroDots").innerHTML = heroSlides
-    .map((_, i) => `<button class="${i === heroIndex ? "is-active" : ""}" data-slide="${i}"></button>`)
+    .map((id, i) => {
+      const work = state.works.find((item) => item.id === id);
+      return `<button class="${i === heroIndex ? "is-active" : ""}" data-slide="${i}" aria-label="${localText(work, "titleZh", "titleEn")}" aria-current="${i === heroIndex ? "true" : "false"}"><img src="${work.image}" alt="" /></button>`;
+    })
     .join("");
 }
 
 function goToSlide(index) {
   heroIndex = index;
+  const work = state.works.find((item) => item.id === heroSlides[heroIndex]);
+  if (!work) return;
   const img = byId("heroImage");
   img.style.opacity = 0;
   setTimeout(() => {
-    img.src = heroSlides[heroIndex];
-    img.style.opacity = 0.82;
-  }, 400);
+    img.src = work.image;
+    img.alt = localText(work, "titleZh", "titleEn");
+    img.style.opacity = 1;
+    byId("heroCounter").textContent = `${String(heroIndex + 1).padStart(2, "0")} / ${String(heroSlides.length).padStart(2, "0")}`;
+    byId("heroWorkTitle").textContent = localText(work, "titleZh", "titleEn");
+    byId("heroWorkMeta").textContent = `${work.medium} · ${work.size} · ${work.year}`;
+  }, 260);
   renderHeroDots();
 }
 
 function startSlideshow() {
+  clearInterval(heroTimer);
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
   heroTimer = setInterval(() => {
     goToSlide((heroIndex + 1) % heroSlides.length);
   }, 5000);
@@ -172,6 +201,9 @@ byId("heroDots").addEventListener("click", (event) => {
   goToSlide(parseInt(dot.dataset.slide));
   startSlideshow();
 });
+
+byId("home").addEventListener("mouseenter", () => clearInterval(heroTimer));
+byId("home").addEventListener("mouseleave", startSlideshow);
 
 // 管理入口：弹密码 → 正确才跳转
 byId("adminEntry").addEventListener("click", (e) => {
@@ -196,3 +228,8 @@ byId("adminPasswordInput").addEventListener("keydown", (e) => {
 });
 
 renderAll();
+goToSlide(0);
+startSlideshow();
+
+const requestedWorkId = new URLSearchParams(location.search).get("work");
+if (requestedWorkId) renderDetail(requestedWorkId);

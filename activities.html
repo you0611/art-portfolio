@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>活动资讯 · 游祥龙艺术工作室</title>
+    <meta name="description" content="游祥龙艺术工作室展览、交流与公共活动资讯。" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body class="public-site">
+    <header class="site-header">
+      <a class="brand" href="gallery.html" aria-label="游祥龙艺术工作室">
+        <span class="brand-mark" aria-hidden="true">YX</span>
+        <span>
+          <strong data-i18n="brandName">游祥龙艺术工作室</strong>
+          <small data-i18n="brandSub">油画 · 风景 · 人物</small>
+        </span>
+      </a>
+      <nav class="main-nav" aria-label="Primary navigation">
+        <a href="gallery.html#artist" data-i18n="navArtist">艺术家</a>
+        <a href="gallery.html#gallery" data-i18n="navGallery">作品</a>
+        <a href="gallery.html#contact" data-i18n="navContact">收藏咨询</a>
+        <a href="gallery.html#contactInfo" data-i18n="navContactInfo">联系方式</a>
+        <a href="activities.html" data-i18n="navActivity" aria-current="page">活动资讯</a>
+      </nav>
+      <div class="header-actions">
+        <a class="header-inquiry" href="gallery.html#contact" data-i18n="inquiry">咨询收藏</a>
+        <button class="ghost-button" id="languageToggle" type="button">EN</button>
+        <button class="menu-button" id="menuToggle" type="button" aria-label="Menu"><span aria-hidden="true"></span></button>
+      </div>
+    </header>
+
+    <main class="activity-page">
+      <section class="section activity-hero">
+        <h1 data-i18n="activityTitle">活动资讯</h1>
+        <p data-i18n="activityIntro">这里将发布工作室展览、交流与公共活动的最新消息。</p>
+        <span class="activity-index" aria-hidden="true">NEWS / EXHIBITIONS / STUDIO</span>
+      </section>
+      <section class="section activity-list" aria-live="polite">
+        <div class="activity-empty">
+          <span data-i18n="activityEmpty">暂无活动资讯，敬请关注。</span>
+          <a href="gallery.html#contactInfo" data-i18n="contactInfoTitle">联系方式</a>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <span data-i18n="footerText">游祥龙艺术工作室</span>
+      <a href="gallery.html" data-i18n="backHome">返回主站</a>
+    </footer>
+
+    <script src="common.js"></script>
+    <script>
+      applyLanguage();
+      byId("languageToggle").addEventListener("click", () => {
+        state.language = state.language === "zh" ? "en" : "zh";
+        saveState();
+        applyLanguage();
+      });
+      byId("menuToggle").addEventListener("click", () => {
+        document.querySelector(".main-nav").classList.toggle("is-open");
+      });
+    </script>
+  </body>
+</html>

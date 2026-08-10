@@ -10,10 +10,18 @@
     />
     <link rel="stylesheet" href="styles.css" />
   </head>
-  <body>
+  <body class="public-site">
+    <!--
+      THESIS: A collector's lightbox where paintings lead and every record supports a direct inquiry; it refuses the generic white-cube card grid.
+      OWN-WORLD: Ink-black viewing fields, cool paper, mineral blue-gray indexing, vermilion proof marks, flush edges, and catalogue labels.
+      STORY: Meet the artist through one decisive work, inspect the catalogue and record, then inquire about a specific painting.
+      FIRST VIEWPORT: A full-height artwork lightbox occupies the left; the artist, work record, and collection actions form a narrow right-hand index.
+      FORM: Curator lightbox and contact-sheet system, grounded direction 6, seed 3fd4aa69.
+      FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, and DESIGN.md
+    -->
     <header class="site-header">
       <a class="brand" href="#home" aria-label="游祥龙艺术工作室">
-        <span class="brand-mark">Long</span>
+        <span class="brand-mark" aria-hidden="true">YX</span>
         <span>
           <strong data-i18n="brandName">游祥龙艺术工作室</strong>
           <small data-i18n="brandSub">油画 · 风景 · 人物</small>
@@ -23,42 +31,65 @@
         <a href="#artist" data-i18n="navArtist">艺术家</a>
         <a href="#gallery" data-i18n="navGallery">作品</a>
         <a href="#contact" data-i18n="navContact">收藏咨询</a>
+        <a href="#contactInfo" data-i18n="navContactInfo">联系方式</a>
+        <a href="activities.html" data-i18n="navActivity">活动资讯</a>
       </nav>
       <div class="header-actions">
+        <a class="header-inquiry" href="#contact" data-i18n="inquiry">咨询收藏</a>
         <button class="ghost-button" id="languageToggle" type="button">EN</button>
-        <button class="menu-button" id="menuToggle" type="button" aria-label="Menu">☰</button>
+        <button class="menu-button" id="menuToggle" type="button" aria-label="Menu"><span aria-hidden="true"></span></button>
       </div>
     </header>
 
     <main>
       <section class="hero" id="home">
-        <div class="hero-slides">
+        <div class="hero-stage">
           <img id="heroImage" src="assets/jiangnan-2024.jpg" alt="油画作品：江南" />
+          <div class="hero-dots" id="heroDots" aria-label="Featured works"></div>
         </div>
         <div class="hero-copy">
-          <p data-i18n="heroKicker">Contemporary Chinese Oil Painting</p>
+          <span class="hero-monogram" aria-hidden="true">游</span>
           <h1 data-i18n="heroTitle">游祥龙</h1>
           <p data-i18n="heroText">
             在江南水色与人物叙事之间，记录时间、乡土与人的精神轮廓。
           </p>
+          <div class="hero-caption" aria-live="polite">
+            <span id="heroCounter">01 / 05</span>
+            <span id="heroWorkTitle">江南</span>
+            <span id="heroWorkMeta">布面油画 · 140 × 160 cm · 2024</span>
+          </div>
           <div class="hero-links">
             <a class="primary-button" href="#gallery" data-i18n="viewWorks">浏览作品</a>
-            <a class="secondary-button" href="#artist" data-i18n="meetArtist">了解艺术家</a>
+            <a class="secondary-button" href="#contact" data-i18n="inquiry">咨询收藏</a>
           </div>
+          <p class="hero-record" data-i18n="heroRecord">中国美术家协会会员 · 深圳大芬艺术社区</p>
         </div>
       </section>
 
       <section class="section artist-section" id="artist">
+        <div class="artist-intro">
+          <h2 data-i18n="artistName">游祥龙</h2>
+          <p data-i18n="artistStatement">以江南水色、人物叙事与民族记忆，展开当代中国油画的个人表达。</p>
+        </div>
         <div class="artist-top">
           <div class="artist-portrait">
             <img src="assets/artist-portrait.jpg" alt="艺术家游祥龙肖像" />
           </div>
           <div class="artist-copy">
-            <p data-i18n="artistKicker">Artist</p>
-            <h2 data-i18n="artistName">游祥龙</h2>
             <p data-i18n="artistBio">
               中国美术家协会会员，中国民族画院聘用画家、研究员，广东省美术家协会会员。作品曾在国展中屡次获奖，并被贵州美术馆、江苏美术馆、北京民族文化宫、尹山湖美术馆、大芬美术馆、李自健美术馆等收藏。
             </p>
+            <div class="artist-proof" aria-label="Official records">
+              <a href="https://www.caanet.org.cn/newsdetail.mx?id=8173" target="_blank" rel="noreferrer">
+                <span>2020</span><strong data-i18n="proofMember">中国美术家协会新会员名单</strong>
+              </a>
+              <a href="https://www.caanet.org.cn/newsdetail.mx?id=8622" target="_blank" rel="noreferrer">
+                <span>2022</span><strong data-i18n="proofMinority">《笙声不息》全国少数民族美术作品展初评入围</strong>
+              </a>
+              <a href="https://www.caanet.org.cn/newsdetail.mx?id=8757" target="_blank" rel="noreferrer">
+                <span>2022</span><strong data-i18n="proofDafen">《笙声不息（二）》深圳大芬国际油画双年展入选</strong>
+              </a>
+            </div>
           </div>
         </div>
         <div class="artist-honors">
@@ -67,12 +98,10 @@
         </div>
       </section>
 
-      <div class="hero-dots" id="heroDots"></div>
-
-      <section class="section" id="gallery">
+      <section class="section collection-section" id="gallery">
         <div class="section-heading">
-          <p data-i18n="galleryKicker">Selected Works</p>
           <h2 data-i18n="galleryTitle">作品收藏</h2>
+          <a class="text-button" href="works.html" data-i18n="allWorks">全部作品</a>
         </div>
         <div class="toolbar">
           <input id="searchInput" type="search" data-i18n-placeholder="searchPlaceholder" />
@@ -92,8 +121,7 @@
       </section>
 
       <section class="section contact-section" id="contact">
-        <div>
-          <p data-i18n="contactKicker">Acquisition Inquiry</p>
+        <div class="contact-copy">
           <h2 data-i18n="contactTitle">作品收藏咨询</h2>
           <p data-i18n="contactText">
             你可以留下想咨询的作品、联系方式和备注。当前本地版会把询价记录保存在后台，正式上线后可接入邮箱、微信或表单服务。
@@ -121,10 +149,12 @@
         </form>
       </section>
 
-
-    </main>
-
       <section class="section contact-info-section" id="contactInfo">
+        <div class="contact-info-heading">
+          <p data-i18n="contactInfoKicker">Contact</p>
+          <h2 data-i18n="contactInfoTitle">联系方式</h2>
+          <p data-i18n="contactInfoText">欢迎致电或到访工作室，了解作品收藏与艺术交流。</p>
+        </div>
         <div class="contact-info-grid">
           <div class="contact-info-card">
             <h3 data-i18n="contactPhone">电话</h3>
@@ -154,8 +184,11 @@
     </div>
 
     <footer class="site-footer">
-      <a href="#" id="adminEntry" data-i18n="footerAdmin">进入管理</a>
-      <span data-i18n="footerText">游祥龙艺术工作室 · 官网</span>
+      <div class="footer-studio"><span data-i18n="footerText">游祥龙艺术工作室</span><small>YOU XIANGLONG ART STUDIO</small></div>
+      <div class="footer-links">
+        <a href="activities.html" data-i18n="navActivity">活动资讯</a>
+        <a href="#" id="adminEntry" data-i18n="footerAdmin">进入管理</a>
+      </div>
     </footer>
 
     <script src="common.js"></script>

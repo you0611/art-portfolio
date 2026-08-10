@@ -7,10 +7,13 @@ const translations = {
     navGallery: "作品",
     navArtist: "艺术家",
     navContact: "收藏咨询",
+    navContactInfo: "联系方式",
+    navActivity: "活动资讯",
     navAdmin: "管理",
     heroKicker: "Contemporary Chinese Oil Painting",
     heroTitle: "游祥龙",
     heroText: "在江南水色与人物叙事之间，记录时间、乡土与人的精神轮廓。",
+    heroRecord: "中国美术家协会会员 · 深圳大芬艺术社区",
     viewWorks: "浏览作品",
     meetArtist: "了解艺术家",
     galleryKicker: "Selected Works",
@@ -24,10 +27,14 @@ const translations = {
     artistName: "游祥龙",
     artistBio:
       "中国美术家协会会员，中国民族画院聘用画家、研究员，广东省美术家协会会员。作品曾在国展中屡次获奖，并被贵州美术馆、江苏美术馆、北京民族文化宫、尹山湖美术馆、大芬美术馆、李自健美术馆等收藏。",
+    artistStatement: "以江南水色、人物叙事与民族记忆，展开当代中国油画的个人表达。",
+    proofMember: "中国美术家协会新会员名单",
+    proofMinority: "《笙声不息》全国少数民族美术作品展初评入围",
+    proofDafen: "《笙声不息（二）》深圳大芬国际油画双年展入选",
     contactKicker: "Acquisition Inquiry",
     contactTitle: "作品收藏咨询",
     contactText:
-      "你可以留下想咨询的作品、联系方式和备注。当前本地版会把询价记录保存在后台，正式上线后可接入邮箱、微信或表单服务。",
+      "选择想了解的作品并留下联系方式，工作室会依据作品状态与你进一步沟通。咨询记录仅保存在当前浏览器的管理后台。",
     formWork: "咨询作品",
     formName: "姓名",
     formContact: "联系方式",
@@ -61,7 +68,7 @@ const translations = {
     personName: "人员姓名",
     personRole: "角色",
     addPerson: "添加人员",
-    footerText: "游祥龙艺术工作室 · 本地预览版",
+    footerText: "游祥龙艺术工作室",
     footerAdmin: "进入管理",
     available: "可咨询",
     sold: "已收藏",
@@ -72,6 +79,7 @@ const translations = {
     edit: "编辑",
     remove: "删除",
     empty: "暂无内容",
+    galleryEmpty: "没有符合当前条件的作品，请调整筛选。",
     saved: "已保存",
     inquirySaved: "咨询已保存，可在后台查看。",
     administrator: "管理员",
@@ -86,6 +94,14 @@ const translations = {
     honorsTitle: "展览荣誉",
     contactPhone: "电话",
     contactAddress: "画廊地址",
+    contactInfoKicker: "Contact",
+    contactInfoTitle: "联系方式",
+    contactInfoText: "欢迎致电或到访工作室，了解作品收藏与艺术交流。",
+    activityKicker: "Studio Updates",
+    activityTitle: "活动资讯",
+    activityIntro: "这里将发布工作室展览、交流与公共活动的最新消息。",
+    activityEmpty: "暂无活动资讯，敬请关注。",
+    backHome: "返回主站",
     moreWorks: "了解更多",
   },
   en: {
@@ -94,10 +110,13 @@ const translations = {
     navGallery: "Works",
     navArtist: "Artist",
     navContact: "Inquiry",
+    navContactInfo: "Contact",
+    navActivity: "News & Events",
     navAdmin: "Admin",
     heroKicker: "Contemporary Chinese Oil Painting",
     heroTitle: "You Xianglong",
     heroText: "Between Jiangnan waterscapes and human narratives, the paintings trace memory, place, and spirit.",
+    heroRecord: "Member of the China Artists Association · Shenzhen Dafen art community",
     viewWorks: "View Works",
     meetArtist: "Meet the Artist",
     galleryKicker: "Selected Works",
@@ -111,10 +130,14 @@ const translations = {
     artistName: "You Xianglong",
     artistBio:
       "You Xianglong is a member of the China Artists Association, a painter and researcher of the China National Art Institute, and a member of the Guangdong Artists Association. His works have received national exhibition awards and entered public and private collections.",
+    artistStatement: "A personal language of contemporary Chinese oil painting shaped by Jiangnan waterscapes, human narratives, and cultural memory.",
+    proofMember: "Listed among the China Artists Association's new members",
+    proofMinority: "Lusheng Sound Never Ends shortlisted for the National Minority Art Exhibition",
+    proofDafen: "Lusheng Sound Never Ends II selected for the Shenzhen Dafen International Oil Painting Biennale",
     contactKicker: "Acquisition Inquiry",
     contactTitle: "Acquisition Inquiry",
     contactText:
-      "Leave the work, contact information, and notes you would like to discuss. This local version stores inquiries in the admin area; the online version can connect email, WeChat, or a form service.",
+      "Select a work and leave your contact details. The studio will follow up according to its current availability. Inquiry records remain in this browser's admin area.",
     formWork: "Work",
     formName: "Name",
     formContact: "Contact",
@@ -148,7 +171,7 @@ const translations = {
     personName: "Name",
     personRole: "Role",
     addPerson: "Add person",
-    footerText: "You Xianglong Art Studio · Local preview",
+    footerText: "You Xianglong Art Studio",
     footerAdmin: "Open admin",
     available: "Available",
     sold: "Collected",
@@ -159,6 +182,7 @@ const translations = {
     edit: "Edit",
     remove: "Delete",
     empty: "Nothing here yet",
+    galleryEmpty: "No works match these filters. Try a different selection.",
     saved: "Saved",
     inquirySaved: "Inquiry saved. You can view it in Admin.",
     administrator: "Administrator",
@@ -173,6 +197,14 @@ const translations = {
     honorsTitle: "Exhibition Honors",
     contactPhone: "Phone",
     contactAddress: "Gallery Address",
+    contactInfoKicker: "Contact",
+    contactInfoTitle: "Contact",
+    contactInfoText: "Call or visit the studio to discuss collecting works and artistic exchange.",
+    activityKicker: "Studio Updates",
+    activityTitle: "News & Events",
+    activityIntro: "Studio exhibitions, exchanges, and public events will be announced here.",
+    activityEmpty: "No upcoming events at the moment. Please check back soon.",
+    backHome: "Back to the main site",
     moreWorks: "More Works",
   },
 };
@@ -426,6 +458,22 @@ function applyLanguage() {
 
 function visibleWorks() {
   return state.works.filter((work) => work.status !== "private" && work.status !== "draft");
+}
+
+const STATIC_DETAIL_IDS = new Set([
+  "cai-lusheng",
+  "flower-2025",
+  "grass-2024",
+  "jiangnan-2024",
+  "jiangnan-series-6",
+  "jiangnan-trip",
+  "ta-series-5",
+]);
+
+function workDetailHref(workId) {
+  return STATIC_DETAIL_IDS.has(workId)
+    ? `works/${workId}${state.language === "en" ? "-en" : ""}.html`
+    : `gallery.html?work=${encodeURIComponent(workId)}#workDetail`;
 }
 
 function readImage(file, callback) {

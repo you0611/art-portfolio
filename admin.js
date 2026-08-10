@@ -28,8 +28,8 @@ function renderAdminWorks() {
             <p>${work.category || "-"} · ${work.size || "-"} · ${work.year || "-"} · ${t(work.status)}</p>
           </div>
           <div class="item-actions">
-            <button class="icon-button" type="button" title="${t("edit")}" data-edit-work="${work.id}">✎</button>
-            <button class="icon-button" type="button" title="${t("remove")}" data-remove-work="${work.id}">×</button>
+            <button class="icon-button" type="button" data-edit-work="${work.id}">${t("edit")}</button>
+            <button class="icon-button" type="button" data-remove-work="${work.id}">${t("remove")}</button>
           </div>
         </div>`
       )
@@ -46,7 +46,7 @@ function renderPeople() {
         <div></div>
         <div><h3>${person.name}</h3><p>${t(person.role)}</p></div>
         <div class="item-actions">
-          <button class="icon-button" type="button" title="${t("remove")}" data-remove-person="${person.id}">×</button>
+          <button class="icon-button" type="button" data-remove-person="${person.id}">${t("remove")}</button>
         </div>
       </div>`
     )
