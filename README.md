@@ -17,6 +17,17 @@
 
 正式上线时建议升级为服务器数据库、多人员登录权限、真实询价通知、SEO 页面和域名配置。
 
+## 商务后端开发
+
+商务后端正在独立分支中分阶段建设，技术边界为 Cloudflare Pages Functions + D1，后台身份验证使用 Cloudflare Access。当前静态前端尚未切换到后端数据源，也没有接入支付。
+
+开发与安全边界详见 `docs/commerce-backend.md`。本地验证入口：
+
+```powershell
+npm install
+npm run check
+```
+
 ## 图片素材
 
 图片素材（二进制文件）位于 `assets/` 目录，需要从原项目复制过来：

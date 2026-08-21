@@ -3,3 +3,10 @@
 *.swp
 *.swo
 generate_*.py
+node_modules/
+dist/
+.wrangler/
+.dev.vars
+.env
+.env.*
+!.env.example

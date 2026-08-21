@@ -1,0 +1,20 @@
+{
+  "name": "youxianglong-art-studio",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "dev": "npm run build && wrangler pages dev dist",
+    "test": "node --test",
+    "db:migrate:local": "wrangler d1 migrations apply yx-art-studio-commerce --local",
+    "db:verify:local": "wrangler d1 execute yx-art-studio-commerce --local --command=\"SELECT content_status, sale_status, COUNT(*) AS count FROM artworks GROUP BY content_status, sale_status ORDER BY sale_status\"",
+    "check": "npm run test && npm run build && npm run db:migrate:local && npm run db:verify:local"
+  },
+  "dependencies": {
+    "jose": "6.2.9"
+  },
+  "devDependencies": {
+    "wrangler": "4.125.0"
+  }
+}

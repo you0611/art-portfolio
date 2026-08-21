@@ -1,0 +1,4 @@
+# Copy to .dev.vars for local admin-route testing. Never commit real values.
+ACCESS_TEAM_DOMAIN=https://your-team.cloudflareaccess.com
+ACCESS_AUD=replace-with-cloudflare-access-audience
+ADMIN_EMAIL=replace-with-the-single-admin-email
