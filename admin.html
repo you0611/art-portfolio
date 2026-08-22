@@ -35,6 +35,8 @@
         <div class="section-heading">
           <p data-i18n="adminKicker">Management</p>
           <h2 data-i18n="adminTitle">网站管理</h2>
+          <p class="form-note" id="adminStatus" aria-live="polite"></p>
+          <button class="secondary-button" id="reloadWorks" type="button" data-i18n="reloadWorks">重新加载作品</button>
         </div>
 
         <div class="admin-tabs">
@@ -48,6 +50,8 @@
         <div class="admin-panel" id="adminWorks">
           <form class="admin-form" id="workForm">
             <input id="workId" type="hidden" />
+            <input id="workVersion" type="hidden" />
+            <input id="workDisplayOrder" type="hidden" />
             <div class="form-grid">
               <label>
                 <span data-i18n="titleZh">中文标题</span>
@@ -71,24 +75,36 @@
               </label>
               <label>
                 <span data-i18n="year">年份</span>
-                <input id="year" />
+                <input id="year" type="number" min="1900" max="2200" step="1" />
               </label>
               <label>
                 <span data-i18n="price">价格</span>
-                <input id="price" />
+                <input id="price" type="number" min="0" step="1" />
               </label>
               <label>
-                <span data-i18n="status">状态</span>
+                <span data-i18n="currency">币种</span>
+                <input id="currency" maxlength="3" value="CNY" />
+              </label>
+              <label>
+                <span data-i18n="status">销售状态</span>
                 <select id="status"></select>
+              </label>
+              <label>
+                <span data-i18n="contentStatus">展示状态</span>
+                <select id="contentStatus"></select>
               </label>
             </div>
             <label class="checkbox-line">
               <input id="hidePrice" type="checkbox" />
               <span data-i18n="hidePrice">不公开价格</span>
             </label>
+            <label class="checkbox-line">
+              <input id="negotiationEnabled" type="checkbox" checked />
+              <span data-i18n="negotiationEnabled">启用议价</span>
+            </label>
             <label>
-              <span data-i18n="imageUpload">上传作品图片</span>
-              <input id="imageUpload" type="file" accept="image/*" />
+              <span data-i18n="imagePath">图片路径</span>
+              <input id="image" placeholder="/assets/example.jpg" />
             </label>
             <label>
               <span data-i18n="descriptionZh">中文简介</span>
@@ -108,6 +124,7 @@
 
         <!-- 艺术家资料 -->
         <div class="admin-panel" id="adminArtist" hidden>
+          <p class="form-note legacy-notice" data-i18n="adminLegacyNotice">旧本地功能 / 本阶段未迁移：内容仍只保存在当前浏览器，不代表跨设备保存。</p>
           <form class="admin-form" id="artistForm">
             <label>
               <span data-i18n="artistNameLabel">艺术家姓名</span>
@@ -134,6 +151,7 @@
 
         <!-- 人员管理 -->
         <div class="admin-panel" id="adminPeople" hidden>
+          <p class="form-note legacy-notice" data-i18n="adminLegacyNotice">旧本地功能 / 本阶段未迁移：内容仍只保存在当前浏览器，不代表跨设备保存。</p>
           <form class="admin-form compact-form" id="peopleForm">
             <label>
               <span data-i18n="personName">人员姓名</span>
@@ -150,34 +168,19 @@
 
         <!-- 咨询记录 -->
         <div class="admin-panel" id="adminInquiries" hidden>
+          <p class="form-note legacy-notice" data-i18n="adminLegacyNotice">旧本地功能 / 本阶段未迁移：内容仍只保存在当前浏览器，不代表跨设备保存。</p>
           <div></div>
           <div class="admin-list" id="inquiryList"></div>
         </div>
       </section>
     </main>
 
-    <!-- 密码弹窗 -->
-    <div id="adminModal" hidden>
-      <div class="modal-overlay">
-        <div class="modal-box">
-          <h3 data-i18n="adminLogin">管理后台</h3>
-          <p data-i18n="adminLoginHint">请输入密码进入管理后台。</p>
-          <input id="adminPasswordInput" type="password" autocomplete="current-password" />
-          <p id="adminPasswordError" class="form-note" style="color: var(--accent);"></p>
-          <div class="modal-actions">
-            <button class="primary-button" id="adminLoginBtn" data-i18n="adminLoginBtn" type="button">进入</button>
-            <button class="secondary-button" id="adminCancelBtn" data-i18n="adminCancelBtn" type="button">取消</button>
-          </div>
-        </div>
-      </div>
-    </div>
-
     <footer class="site-footer">
       <span data-i18n="footerText">游祥龙艺术工作室</span>
       <a href="index.html" data-i18n="footerAdmin">返回首页</a>
     </footer>
 
-    <script src="common.js?v=20260810-redesign"></script>
-    <script src="admin.js?v=20260810-redesign"></script>
+    <script src="common.js?v=20260823-commerce-phase2"></script>
+    <script src="admin.js?v=20260823-commerce-phase2"></script>
   </body>
 </html>

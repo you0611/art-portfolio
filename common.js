@@ -52,14 +52,17 @@ const translations = {
     medium: "媒介",
     size: "尺寸",
     year: "年份",
-    price: "价格",
-    status: "状态",
-    hidePrice: "不公开价格",
-    imageUpload: "上传作品图片",
+    price: "议价金额（分）",
+    currency: "币种",
+    status: "销售状态",
+    contentStatus: "展示状态",
+    hidePrice: "仅私下报价",
+    imagePath: "图片路径",
+    negotiationEnabled: "启用议价",
     descriptionZh: "中文简介",
     descriptionEn: "英文简介",
     saveWork: "保存作品",
-    newWork: "新增作品",
+    newWork: "清空表单",
     artistNameLabel: "艺术家姓名",
     artistBioZh: "中文简介",
     artistBioEn: "英文简介",
@@ -86,11 +89,18 @@ const translations = {
     editor: "编辑",
     viewer: "查看者",
     noInquiries: "还没有咨询记录。",
-    adminLogin: "管理后台",
-    adminLoginHint: "请输入密码进入管理后台。",
-    adminLoginBtn: "进入",
-    adminCancelBtn: "取消",
-    adminWrongPassword: "密码错误，请重试。",
+    published: "已发布",
+    archived: "已归档",
+    not_for_sale: "不出售",
+    adminLoading: "正在读取服务端作品…",
+    adminReady: "服务端作品已加载。",
+    adminSaved: "作品已保存到服务端。",
+    adminWorkEditOnly: "本阶段只支持编辑已有作品；新增作品留待后续阶段。",
+    adminLegacyNotice: "旧本地功能 / 本阶段未迁移：内容仍只保存在当前浏览器，不代表跨设备保存。",
+    adminAccessUnavailable: "后台身份验证或服务端暂不可用，请确认已通过 Cloudflare Access。",
+    reloadWorks: "重新加载作品",
+    adminVersionConflict: "数据已被其他修改刷新，请重新加载",
+    adminSaveFailed: "保存失败，请稍后重试。",
     honorsTitle: "展览荣誉",
     contactPhone: "电话",
     contactAddress: "画廊地址",
@@ -155,14 +165,17 @@ const translations = {
     medium: "Medium",
     size: "Size",
     year: "Year",
-    price: "Price",
-    status: "Status",
-    hidePrice: "Hide price",
-    imageUpload: "Upload image",
+    price: "Negotiation amount (minor units)",
+    currency: "Currency",
+    status: "Sale status",
+    contentStatus: "Content status",
+    hidePrice: "Private quote only",
+    imagePath: "Image path",
+    negotiationEnabled: "Negotiation enabled",
     descriptionZh: "Chinese description",
     descriptionEn: "English description",
     saveWork: "Save work",
-    newWork: "New work",
+    newWork: "Clear form",
     artistNameLabel: "Artist name",
     artistBioZh: "Chinese bio",
     artistBioEn: "English bio",
@@ -189,11 +202,18 @@ const translations = {
     editor: "Editor",
     viewer: "Viewer",
     noInquiries: "No inquiries yet.",
-    adminLogin: "Admin Login",
-    adminLoginHint: "Enter the password to access the admin panel.",
-    adminLoginBtn: "Enter",
-    adminCancelBtn: "Cancel",
-    adminWrongPassword: "Wrong password. Please try again.",
+    published: "Published",
+    archived: "Archived",
+    not_for_sale: "Not for sale",
+    adminLoading: "Loading works from the server…",
+    adminReady: "Server works loaded.",
+    adminSaved: "Work saved to the server.",
+    adminWorkEditOnly: "This phase edits existing works only; creating new works comes later.",
+    adminLegacyNotice: "Legacy local feature / not migrated in this phase: data stays in this browser and is not cross-device storage.",
+    adminAccessUnavailable: "Admin authentication or the server is unavailable. Confirm Cloudflare Access is authorized.",
+    reloadWorks: "Reload works",
+    adminVersionConflict: "数据已被其他修改刷新，请重新加载",
+    adminSaveFailed: "Save failed. Please try again.",
     honorsTitle: "Exhibition Honors",
     contactPhone: "Phone",
     contactAddress: "Gallery Address",
@@ -406,29 +426,6 @@ function loadState() {
 }
 
 let state = loadState();
-let selectedImageData = "";
-let selectedPortraitData = "";
-
-const ADMIN_PASSWORD = "you19790214";
-
-function isAdminUnlocked() {
-  return sessionStorage.getItem("admin-unlocked") === "true";
-}
-
-function unlockAdmin() {
-  sessionStorage.setItem("admin-unlocked", "true");
-}
-
-function showAdminModal() {
-  byId("adminPasswordInput").value = "";
-  byId("adminPasswordError").textContent = "";
-  byId("adminModal").hidden = false;
-  byId("adminPasswordInput").focus();
-}
-
-function hideAdminModal() {
-  byId("adminModal").hidden = true;
-}
 function saveState() {
   localStorage.setItem("yx-site-v2", JSON.stringify(state));
 }

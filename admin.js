@@ -1,107 +1,126 @@
-// ===== admin.js - 管理后台专用 =====
-// 依赖 common.js 提供：state, translations, t(), byId(), saveState(), applyLanguage(),
-// readImage(), selectedImageData, selectedPortraitData, ADMIN_PASSWORD,
-// isAdminUnlocked(), unlockAdmin(), showAdminModal(), hideAdminModal(), asset()
+// ===== admin.js - server-backed artwork management =====
+// Artist, people, and inquiry panels intentionally remain legacy local features.
 
-// ===== 1. 下拉选项渲染 =====
+let adminWorks = [];
+let selectedPortraitData = "";
+
+function setAdminStatus(message, isError = false) {
+  const node = byId("adminStatus");
+  node.textContent = message;
+  node.style.color = isError ? "var(--accent)" : "";
+}
+
+async function requestJson(path, options = {}) {
+  const headers = new Headers(options.headers || {});
+  headers.set("accept", "application/json");
+  const response = await fetch(path, { ...options, headers, cache: "no-store" });
+  let body = null;
+  try {
+    body = await response.json();
+  } catch {
+    body = null;
+  }
+  if (!response.ok) {
+    const error = new Error(body?.error?.message || "Request failed.");
+    error.status = response.status;
+    error.code = body?.error?.code || "REQUEST_FAILED";
+    throw error;
+  }
+  return body;
+}
+
+function textElement(tag, text, className = "") {
+  const element = document.createElement(tag);
+  element.textContent = text ?? "";
+  if (className) element.className = className;
+  return element;
+}
 
 function renderStatusOptions() {
-  byId("status").innerHTML = ["available", "sold", "draft", "private"]
-    .map((status) => `<option value="${status}">${t(status)}</option>`)
-    .join("");
-  byId("personRole").innerHTML = ["administrator", "editor", "viewer"]
-    .map((role) => `<option value="${role}">${t(role)}</option>`)
-    .join("");
+  byId("status").replaceChildren(
+    ...["available", "sold", "not_for_sale"].map((value) => new Option(t(value), value)),
+  );
+  byId("contentStatus").replaceChildren(
+    ...["draft", "published", "archived"].map((value) => new Option(t(value), value)),
+  );
+  byId("personRole").replaceChildren(
+    ...["administrator", "editor", "viewer"].map((value) => new Option(t(value), value)),
+  );
 }
-
-// ===== 2. 作品管理列表 =====
 
 function renderAdminWorks() {
-  byId("workAdminList").innerHTML =
-    state.works
-      .map(
-        (work) => `
-        <div class="admin-item">
-          <img src="${work.image}" alt="${work.titleZh}" />
-          <div>
-            <h3>${work.titleZh}</h3>
-            <p>${work.category || "-"} · ${work.size || "-"} · ${work.year || "-"} · ${t(work.status)}</p>
-          </div>
-          <div class="item-actions">
-            <button class="icon-button" type="button" data-edit-work="${work.id}">${t("edit")}</button>
-            <button class="icon-button" type="button" data-remove-work="${work.id}">${t("remove")}</button>
-          </div>
-        </div>`
-      )
-      .join("") || `<div class="empty-state">${t("empty")}</div>`;
+  const list = byId("workAdminList");
+  list.replaceChildren();
+  if (!adminWorks.length) {
+    list.append(textElement("div", t("empty"), "empty-state"));
+    return;
+  }
+  for (const work of adminWorks) {
+    const item = document.createElement("div");
+    item.className = "admin-item";
+    const image = document.createElement("img");
+    image.src = work.image;
+    image.alt = work.titleZh;
+    const copy = document.createElement("div");
+    copy.append(
+      textElement("h3", work.titleZh),
+      textElement(
+        "p",
+        `${work.category || "-"} · ${work.dimensions || "-"} · ${work.year || "-"} · ${t(work.saleStatus)}`,
+      ),
+      textElement("p", `v${work.version}`, "form-note"),
+    );
+    const actions = document.createElement("div");
+    actions.className = "item-actions";
+    const edit = textElement("button", t("edit"), "icon-button");
+    edit.type = "button";
+    edit.dataset.editWork = work.id;
+    actions.append(edit);
+    item.append(image, copy, actions);
+    list.append(item);
+  }
 }
-
-// ===== 3. 人员列表 =====
 
 function renderPeople() {
-  byId("peopleList").innerHTML = state.people
-    .map(
-      (person) => `
-      <div class="admin-item">
-        <div></div>
-        <div><h3>${person.name}</h3><p>${t(person.role)}</p></div>
-        <div class="item-actions">
-          <button class="icon-button" type="button" data-remove-person="${person.id}">${t("remove")}</button>
-        </div>
-      </div>`
-    )
-    .join("");
+  const list = byId("peopleList");
+  list.replaceChildren();
+  for (const person of state.people) {
+    const item = document.createElement("div");
+    item.className = "admin-item";
+    const copy = document.createElement("div");
+    copy.append(textElement("h3", person.name), textElement("p", t(person.role)));
+    const actions = document.createElement("div");
+    actions.className = "item-actions";
+    const remove = textElement("button", t("remove"), "icon-button");
+    remove.type = "button";
+    remove.dataset.removePerson = person.id;
+    actions.append(remove);
+    item.append(document.createElement("div"), copy, actions);
+    list.append(item);
+  }
 }
-
-// ===== 4. 咨询记录列表 =====
 
 function renderInquiries() {
-  byId("inquiryList").innerHTML =
-    state.inquiries
-      .map((inquiry) => {
-        const work = state.works.find((item) => item.id === inquiry.workId);
-        return `
-          <div class="admin-item">
-            <div></div>
-            <div>
-              <h3>${work ? work.titleZh : inquiry.workId}</h3>
-              <p>${inquiry.name} · ${inquiry.contact}</p>
-              <p>${inquiry.message || ""}</p>
-            </div>
-            <div>${inquiry.date}</div>
-          </div>`;
-      })
-      .join("") || `<div class="empty-state">${t("noInquiries")}</div>`;
+  const list = byId("inquiryList");
+  list.replaceChildren();
+  if (!state.inquiries.length) {
+    list.append(textElement("div", t("noInquiries"), "empty-state"));
+    return;
+  }
+  for (const inquiry of state.inquiries) {
+    const work = state.works.find((item) => item.id === inquiry.workId);
+    const item = document.createElement("div");
+    item.className = "admin-item";
+    const copy = document.createElement("div");
+    copy.append(
+      textElement("h3", work?.titleZh || inquiry.workId),
+      textElement("p", `${inquiry.name} · ${inquiry.contact}`),
+      textElement("p", inquiry.message || ""),
+    );
+    item.append(document.createElement("div"), copy, textElement("div", inquiry.date));
+    list.append(item);
+  }
 }
-
-// ===== 5. 重置作品表单 =====
-
-function resetWorkForm() {
-  byId("workForm").reset();
-  byId("workId").value = "";
-  selectedImageData = "";
-}
-
-// ===== 6. 填充作品编辑表单 =====
-
-function fillWorkForm(work) {
-  byId("workId").value = work.id;
-  byId("titleZh").value = work.titleZh;
-  byId("titleEn").value = work.titleEn;
-  byId("category").value = work.category;
-  byId("medium").value = work.medium;
-  byId("size").value = work.size;
-  byId("year").value = work.year;
-  byId("price").value = work.price;
-  byId("status").value = work.status;
-  byId("hidePrice").checked = work.hidePrice;
-  byId("descriptionZh").value = work.descriptionZh;
-  byId("descriptionEn").value = work.descriptionEn;
-  selectedImageData = "";
-  location.hash = "admin";
-}
-
-// ===== 7. 填充艺术家资料表单 =====
 
 function fillArtistForm() {
   byId("artistNameInput").value = state.artist.name;
@@ -110,20 +129,84 @@ function fillArtistForm() {
   selectedPortraitData = "";
 }
 
-// ===== 8. renderAll（管理版） =====
+function resetWorkForm() {
+  byId("workForm").reset();
+  byId("workId").value = "";
+  byId("workVersion").value = "";
+  byId("workDisplayOrder").value = "0";
+  byId("currency").value = "CNY";
+  byId("contentStatus").value = "published";
+  byId("status").value = "available";
+  byId("negotiationEnabled").checked = true;
+  setAdminStatus(t("adminWorkEditOnly"));
+}
 
-function renderAll() {
+function fillWorkForm(work) {
+  byId("workId").value = work.id;
+  byId("workVersion").value = work.version;
+  byId("workDisplayOrder").value = work.displayOrder;
+  byId("titleZh").value = work.titleZh;
+  byId("titleEn").value = work.titleEn;
+  byId("category").value = work.category;
+  byId("medium").value = work.medium;
+  byId("size").value = work.dimensions;
+  byId("year").value = work.year;
+  byId("price").value = work.priceMinor ?? "";
+  byId("currency").value = work.currency;
+  byId("status").value = work.saleStatus;
+  byId("contentStatus").value = work.contentStatus;
+  byId("hidePrice").checked = work.priceVisibility === "private_quote";
+  byId("negotiationEnabled").checked = work.negotiationEnabled;
+  byId("image").value = work.image;
+  byId("descriptionZh").value = work.descriptionZh;
+  byId("descriptionEn").value = work.descriptionEn;
+  location.hash = "admin";
+}
+
+function workPatchFromForm() {
+  const price = byId("price").value.trim();
+  return {
+    version: Number(byId("workVersion").value),
+    titleZh: byId("titleZh").value.trim(),
+    titleEn: byId("titleEn").value.trim(),
+    category: byId("category").value.trim(),
+    medium: byId("medium").value.trim(),
+    dimensions: byId("size").value.trim(),
+    year: Number(byId("year").value),
+    image: byId("image").value.trim(),
+    descriptionZh: byId("descriptionZh").value.trim(),
+    descriptionEn: byId("descriptionEn").value.trim(),
+    contentStatus: byId("contentStatus").value,
+    saleStatus: byId("status").value,
+    priceMinor: price === "" ? null : Number(price),
+    currency: byId("currency").value.trim().toUpperCase(),
+    priceVisibility: byId("hidePrice").checked ? "private_quote" : "on_request",
+    negotiationEnabled: byId("negotiationEnabled").checked,
+    displayOrder: Number(byId("workDisplayOrder").value),
+  };
+}
+
+async function loadAdminWorks() {
+  setAdminStatus(t("adminLoading"));
+  try {
+    const result = await requestJson("/api/admin/artworks");
+    adminWorks = result.artworks || [];
+    renderAdminWorks();
+    setAdminStatus(t("adminReady"));
+  } catch {
+    adminWorks = [];
+    renderAdminWorks();
+    setAdminStatus(t("adminAccessUnavailable"), true);
+  }
+}
+
+function renderLegacyPanels() {
   applyLanguage();
-  renderStatusOptions();
-  renderAdminWorks();
   renderPeople();
   renderInquiries();
   fillArtistForm();
 }
 
-// ===== 9. 事件监听器 =====
-
-// 管理 tab 切换
 document.querySelectorAll("[data-admin-tab]").forEach((button) => {
   button.addEventListener("click", () => {
     document.querySelectorAll("[data-admin-tab]").forEach((tab) => tab.classList.remove("is-active"));
@@ -134,11 +217,47 @@ document.querySelectorAll("[data-admin-tab]").forEach((button) => {
   });
 });
 
-// 图片上传
-byId("imageUpload").addEventListener("change", (event) => {
-  readImage(event.target.files[0], (data) => {
-    selectedImageData = data;
-  });
+byId("workForm").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const id = byId("workId").value;
+  if (!id) {
+    setAdminStatus(t("adminWorkEditOnly"), true);
+    return;
+  }
+  const saveButton = byId("workForm").querySelector('button[type="submit"]');
+  saveButton.disabled = true;
+  try {
+    const result = await requestJson(`/api/admin/artworks/${encodeURIComponent(id)}`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(workPatchFromForm()),
+    });
+    adminWorks = adminWorks.map((work) => (work.id === id ? result.artwork : work));
+    renderAdminWorks();
+    fillWorkForm(result.artwork);
+    setAdminStatus(t("adminSaved"));
+  } catch (error) {
+    if (error.status === 409) {
+      setAdminStatus(t("adminVersionConflict"), true);
+    } else {
+      setAdminStatus(t("adminSaveFailed"), true);
+    }
+  } finally {
+    saveButton.disabled = false;
+  }
+});
+
+byId("resetWorkForm").addEventListener("click", resetWorkForm);
+byId("reloadWorks").addEventListener("click", loadAdminWorks);
+
+byId("artistForm").addEventListener("submit", (event) => {
+  event.preventDefault();
+  state.artist.name = byId("artistNameInput").value.trim() || state.artist.name;
+  state.artist.bioZh = byId("artistBioZh").value.trim();
+  state.artist.bioEn = byId("artistBioEn").value.trim();
+  if (selectedPortraitData) state.artist.portrait = selectedPortraitData;
+  saveState();
+  renderLegacyPanels();
 });
 
 byId("portraitUpload").addEventListener("change", (event) => {
@@ -147,49 +266,6 @@ byId("portraitUpload").addEventListener("change", (event) => {
   });
 });
 
-// 作品表单提交
-byId("workForm").addEventListener("submit", (event) => {
-  event.preventDefault();
-  const existingId = byId("workId").value;
-  const work = {
-    id: existingId || `work-${Date.now()}`,
-    titleZh: byId("titleZh").value.trim(),
-    titleEn: byId("titleEn").value.trim(),
-    category: byId("category").value.trim(),
-    medium: byId("medium").value.trim(),
-    size: byId("size").value.trim(),
-    year: byId("year").value.trim(),
-    price: byId("price").value.trim(),
-    status: byId("status").value,
-    hidePrice: byId("hidePrice").checked,
-    image: selectedImageData || (state.works.find((item) => item.id === existingId) || {}).image || asset("studio-1.jpg"),
-    descriptionZh: byId("descriptionZh").value.trim(),
-    descriptionEn: byId("descriptionEn").value.trim(),
-  };
-  if (existingId) {
-    state.works = state.works.map((item) => (item.id === existingId ? work : item));
-  } else {
-    state.works.unshift(work);
-  }
-  saveState();
-  resetWorkForm();
-  renderAll();
-});
-
-byId("resetWorkForm").addEventListener("click", resetWorkForm);
-
-// 艺术家表单提交
-byId("artistForm").addEventListener("submit", (event) => {
-  event.preventDefault();
-  state.artist.name = byId("artistNameInput").value.trim() || state.artist.name;
-  state.artist.bioZh = byId("artistBioZh").value.trim();
-  state.artist.bioEn = byId("artistBioEn").value.trim();
-  if (selectedPortraitData) state.artist.portrait = selectedPortraitData;
-  saveState();
-  renderAll();
-});
-
-// 人员表单提交
 byId("peopleForm").addEventListener("submit", (event) => {
   event.preventDefault();
   state.people.push({
@@ -202,55 +278,12 @@ byId("peopleForm").addEventListener("submit", (event) => {
   renderPeople();
 });
 
-// 密码弹窗
-byId("adminLoginBtn").addEventListener("click", () => {
-  const pwd = byId("adminPasswordInput").value;
-  if (pwd === ADMIN_PASSWORD) {
-    unlockAdmin();
-    hideAdminModal();
-    renderAll();
-    location.hash = "admin";
-  } else {
-    byId("adminPasswordError").textContent = t("adminWrongPassword");
-  }
-});
-
-byId("adminCancelBtn").addEventListener("click", () => {
-  hideAdminModal();
-  location.hash = "#";
-});
-
-byId("adminPasswordInput").addEventListener("keydown", (event) => {
-  if (event.key === "Enter") byId("adminLoginBtn").click();
-});
-
-// 语言切换
-byId("languageToggle").addEventListener("click", () => {
-  state.language = state.language === "zh" ? "en" : "zh";
-  saveState();
-  renderAll();
-});
-
-// 菜单切换
-byId("menuToggle").addEventListener("click", () => {
-  document.querySelector(".main-nav").classList.toggle("is-open");
-});
-
-// 全局点击处理：data-edit-work / data-remove-work / data-remove-person
 document.addEventListener("click", (event) => {
   const editButton = event.target.closest("[data-edit-work]");
   if (editButton) {
-    const work = state.works.find((item) => item.id === editButton.dataset.editWork);
+    const work = adminWorks.find((item) => item.id === editButton.dataset.editWork);
     if (work) fillWorkForm(work);
   }
-
-  const removeButton = event.target.closest("[data-remove-work]");
-  if (removeButton) {
-    state.works = state.works.filter((item) => item.id !== removeButton.dataset.removeWork);
-    saveState();
-    renderAll();
-  }
-
   const removePerson = event.target.closest("[data-remove-person]");
   if (removePerson) {
     state.people = state.people.filter((person) => person.id !== removePerson.dataset.removePerson);
@@ -259,32 +292,19 @@ document.addEventListener("click", (event) => {
   }
 });
 
-// ===== 10. 管理导航链接拦截 & hashchange 拦截 =====
-
-// 拦截管理入口链接
-const adminLink = document.querySelector('[href="#admin"]');
-if (adminLink) {
-  adminLink.addEventListener("click", (event) => {
-    if (!isAdminUnlocked()) {
-      event.preventDefault();
-      showAdminModal();
-    }
-  });
-}
-
-// 拦截 hash 变化（密码保护）
-window.addEventListener("hashchange", () => {
-  if (location.hash === "#admin" && !isAdminUnlocked()) {
-    location.hash = "#";
-    showAdminModal();
-  }
+byId("languageToggle").addEventListener("click", () => {
+  state.language = state.language === "zh" ? "en" : "zh";
+  saveState();
+  renderStatusOptions();
+  renderLegacyPanels();
+  renderAdminWorks();
 });
 
-// ===== 页面初始化：先弹密码框 =====
-(function initAdmin() {
-  if (isAdminUnlocked()) {
-    renderAll();
-  } else {
-    showAdminModal();
-  }
-})();
+byId("menuToggle").addEventListener("click", () => {
+  document.querySelector(".main-nav").classList.toggle("is-open");
+});
+
+applyLanguage();
+renderStatusOptions();
+renderLegacyPanels();
+loadAdminWorks();

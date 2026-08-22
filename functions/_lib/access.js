@@ -5,9 +5,9 @@ const jwksByDomain = new Map();
 export class AccessConfigurationError extends Error {}
 
 export function normalizeAccessConfig(env) {
-  const rawDomain = env.ACCESS_TEAM_DOMAIN?.trim();
-  const audience = env.ACCESS_AUD?.trim();
-  const adminEmail = env.ADMIN_EMAIL?.trim().toLowerCase();
+  const rawDomain = typeof env.ACCESS_TEAM_DOMAIN === "string" ? env.ACCESS_TEAM_DOMAIN.trim() : "";
+  const audience = typeof env.ACCESS_AUD === "string" ? env.ACCESS_AUD.trim() : "";
+  const adminEmail = typeof env.ADMIN_EMAIL === "string" ? env.ADMIN_EMAIL.trim().toLowerCase() : "";
 
   if (!rawDomain || !audience || !adminEmail) {
     throw new AccessConfigurationError("Cloudflare Access is not configured.");

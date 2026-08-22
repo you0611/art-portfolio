@@ -205,26 +205,10 @@ byId("heroDots").addEventListener("click", (event) => {
 byId("home").addEventListener("mouseenter", () => clearInterval(heroTimer));
 byId("home").addEventListener("mouseleave", startSlideshow);
 
-// 管理入口：弹密码 → 正确才跳转
+// 管理入口：身份验证由 Cloudflare Access 负责
 byId("adminEntry").addEventListener("click", (e) => {
   e.preventDefault();
-  showAdminModal();
-});
-
-byId("adminLoginBtn").addEventListener("click", () => {
-  const pwd = byId("adminPasswordInput").value;
-  if (pwd === ADMIN_PASSWORD) {
-    unlockAdmin();
-    hideAdminModal();
-    location.href = "admin.html";
-  } else {
-    byId("adminPasswordError").textContent = t("adminWrongPassword");
-  }
-});
-
-byId("adminCancelBtn").addEventListener("click", () => { hideAdminModal(); });
-byId("adminPasswordInput").addEventListener("keydown", (e) => {
-  if (e.key === "Enter") byId("adminLoginBtn").click();
+  location.href = "admin.html";
 });
 
 renderAll();
