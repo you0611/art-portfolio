@@ -80,6 +80,7 @@ function renderArtist() {
 
 function renderInquirySelect() {
   byId("inquiryWork").innerHTML = visibleWorks()
+    .filter((work) => work.status === "available")
     .map((work) => `<option value="${work.id}">${localText(work, "titleZh", "titleEn")}</option>`)
     .join("");
 }
@@ -134,19 +135,41 @@ byId("searchInput").addEventListener("input", renderGallery);
 byId("categoryFilter").addEventListener("change", renderGallery);
 byId("availabilityFilter").addEventListener("change", renderGallery);
 
-byId("inquiryForm").addEventListener("submit", (event) => {
+byId("inquiryForm").addEventListener("submit", async (event) => {
   event.preventDefault();
-  state.inquiries.unshift({
-    id: `inquiry-${Date.now()}`,
-    workId: byId("inquiryWork").value,
-    name: byId("inquiryName").value.trim(),
-    contact: byId("inquiryContact").value.trim(),
-    message: byId("inquiryMessage").value.trim(),
-    date: new Date().toLocaleDateString(),
-  });
-  saveState();
-  byId("formNote").textContent = t("inquirySaved");
-  event.target.reset();
+  const form = event.target;
+  const submitButton = form.querySelector('button[type="submit"]');
+  const contact = byId("inquiryContact").value.trim();
+  const email = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contact) ? contact : "";
+  submitButton.disabled = true;
+  byId("formNote").textContent = t("inquirySending");
+  try {
+    const response = await fetch("/api/orders", {
+      method: "POST",
+      headers: {
+        accept: "application/json",
+        "content-type": "application/json",
+        "idempotency-key": crypto.randomUUID(),
+      },
+      cache: "no-store",
+      body: JSON.stringify({
+        artworkId: byId("inquiryWork").value,
+        customerName: byId("inquiryName").value.trim(),
+        customerEmail: email,
+        customerContact: contact,
+        preferredLanguage: state.language,
+        contactNote: byId("inquiryMessage").value.trim(),
+      }),
+    });
+    const body = await response.json().catch(() => null);
+    if (!response.ok) throw new Error(body?.error?.message || "Request failed.");
+    byId("formNote").textContent = `${t("inquirySaved")}${body.order.reference}`;
+    form.reset();
+  } catch {
+    byId("formNote").textContent = t("inquiryFailed");
+  } finally {
+    submitButton.disabled = false;
+  }
 });
 
 // 首页轮播

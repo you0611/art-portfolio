@@ -1,0 +1,328 @@
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { DatabaseSync } from "node:sqlite";
+import test from "node:test";
+
+import { onRequest as onPublicCreate } from "../functions/api/orders/index.js";
+import { onRequest as onPublicOrder } from "../functions/api/orders/[reference].js";
+import { onRequest as onPublicOffer } from "../functions/api/orders/[reference]/offers.js";
+import { onRequest as onAdminOrders } from "../functions/api/admin/orders/index.js";
+import { onRequest as onAdminOrder } from "../functions/api/admin/orders/[id].js";
+import { onRequest as onAdminOffer } from "../functions/api/admin/orders/[id]/offers.js";
+import { onRequest as onAdminHold } from "../functions/api/admin/orders/[id]/hold.js";
+import { onRequest as onAdminReleaseHold } from "../functions/api/admin/orders/[id]/release-hold.js";
+
+const migrationSql = ["0001_commerce_foundation.sql", "0002_stage3_orders.sql"]
+  .map((name) => readFileSync(new URL(`../migrations/${name}`, import.meta.url), "utf8"))
+  .join("\n");
+
+class D1PreparedShim {
+  constructor(database, sql, values = []) {
+    this.database = database;
+    this.sql = sql;
+    this.values = values;
+  }
+
+  bind(...values) {
+    return new D1PreparedShim(this.database, this.sql, values);
+  }
+
+  first(column) {
+    const row = this.database.prepare(this.sql).get(...this.values);
+    return column ? row?.[column] : row;
+  }
+
+  all() {
+    return { success: true, results: this.database.prepare(this.sql).all(...this.values) };
+  }
+
+  run() {
+    const statement = this.database.prepare(this.sql);
+    const results = /\bRETURNING\b/i.test(this.sql) ? statement.all(...this.values) : [];
+    if (!results.length && !/\bRETURNING\b/i.test(this.sql)) statement.run(...this.values);
+    const changes = Number(this.database.prepare("SELECT changes() AS changes").get().changes);
+    return { success: true, meta: { changes }, results };
+  }
+}
+
+function makeD1(failAudit = false) {
+  const database = new DatabaseSync(":memory:");
+  database.exec(migrationSql);
+  return {
+    prepare(sql) {
+      return new D1PreparedShim(database, sql);
+    },
+    async batch(statements) {
+      database.exec("BEGIN");
+      try {
+        const results = statements.map((statement) => {
+          if (failAudit && /admin_audit_log/.test(statement.sql)) throw new Error("simulated audit failure");
+          return statement.run();
+        });
+        database.exec("COMMIT");
+        return results;
+      } catch (error) {
+        database.exec("ROLLBACK");
+        throw error;
+      }
+    },
+    database,
+    setFailAudit(value) {
+      failAudit = value;
+    },
+  };
+}
+
+function jsonRequest(url, method, body, extraHeaders = {}) {
+  return new Request(`https://preview.example.test${url}`, {
+    method,
+    headers: { "content-type": "application/json", ...extraHeaders },
+    body: JSON.stringify(body),
+  });
+}
+
+function publicContext(request, db, reference) {
+  return { request, params: reference ? { reference } : {}, env: { DB: db } };
+}
+
+function adminContext(request, db, id, failAudit = false) {
+  return {
+    request,
+    params: { id },
+    env: { DB: db },
+    data: { admin: { email: "admin@example.test" } },
+    failAudit,
+  };
+}
+
+async function createInquiry(db, idempotencyKey = "stage3-order-001") {
+  return onPublicCreate({
+    request: jsonRequest(
+      "/api/orders",
+      "POST",
+      {
+        artworkId: "guiquilaixi",
+        customerName: "Fixture Buyer",
+        customerEmail: "fixture@example.test",
+        customerContact: "+86 13800000000",
+        customerCountryCode: "CN",
+        preferredLanguage: "zh",
+        contactNote: "Fixture-only inquiry.",
+        shippingNote: "Please discuss shipping separately.",
+      },
+      { "idempotency-key": idempotencyKey },
+    ),
+    params: {},
+    env: { DB: db },
+  });
+}
+
+test("public inquiry is server-backed, idempotent, and does not expose contact data", async () => {
+  const db = makeD1();
+  const response = await createInquiry(db);
+  assert.equal(response.status, 201);
+  assert.equal(response.headers.get("cache-control"), "no-store");
+  const body = await response.json();
+  assert.match(body.order.reference, /^YX-[A-F0-9]{32}$/);
+  assert.equal(body.order.status, "submitted");
+  assert.equal(body.order.artwork.id, "guiquilaixi");
+  assert.doesNotMatch(JSON.stringify(body), /fixture@example\.test|13800000000/);
+  assert.equal(db.database.prepare("SELECT COUNT(*) AS count FROM orders").get().count, 1);
+  assert.equal(db.database.prepare("SELECT customer_contact FROM orders").get().customer_contact, "+86 13800000000");
+
+  const duplicate = await createInquiry(db);
+  assert.equal(duplicate.status, 200);
+  assert.equal((await duplicate.json()).reused, true);
+  assert.equal(db.database.prepare("SELECT COUNT(*) AS count FROM orders").get().count, 1);
+
+  const status = await onPublicOrder(publicContext(
+    new Request(`https://preview.example.test/api/orders/${body.order.reference}`),
+    db,
+    body.order.reference,
+  ));
+  assert.equal(status.status, 200);
+  assert.equal((await status.json()).order.status, "submitted");
+});
+
+test("public offer and admin quote move the order through negotiation", async () => {
+  const db = makeD1();
+  const inquiry = await createInquiry(db, "stage3-order-002");
+  const reference = (await inquiry.json()).order.reference;
+  const customerOffer = await onPublicOffer(publicContext(
+    jsonRequest(`/api/orders/${reference}/offers`, "POST", {
+      amountMinor: 120000,
+      currency: "cny",
+      message: "Fixture counteroffer",
+    }),
+    db,
+    reference,
+  ));
+  assert.equal(customerOffer.status, 201);
+  assert.equal((await customerOffer.json()).offer.proposedBy, "customer");
+
+  const orderRow = db.database.prepare("SELECT id, version FROM orders WHERE public_reference = ?").get(reference);
+  assert.equal(orderRow.version, 2);
+  const adminOffer = await onAdminOffer(adminContext(
+    jsonRequest(`/api/admin/orders/${orderRow.id}/offers`, "POST", {
+      version: 2,
+      amountMinor: 150000,
+      currency: "CNY",
+      message: "Fixture administrator quote",
+    }),
+    db,
+    orderRow.id,
+  ));
+  assert.equal(adminOffer.status, 201);
+  assert.equal(adminOffer.headers.get("cache-control"), "no-store");
+  const adminBody = await adminOffer.json();
+  assert.equal(adminBody.order.status, "negotiating");
+  assert.equal(adminBody.order.version, 3);
+  assert.equal(adminBody.order.offers.length, 2);
+  assert.equal(db.database.prepare("SELECT COUNT(*) AS count FROM admin_audit_log WHERE action = 'create_offer'").get().count, 1);
+});
+
+test("admin hold accepts one offer atomically, prevents new inquiry, and can be released", async () => {
+  const db = makeD1();
+  const inquiry = await createInquiry(db, "stage3-order-003");
+  const reference = (await inquiry.json()).order.reference;
+  await onPublicOffer(publicContext(
+    jsonRequest(`/api/orders/${reference}/offers`, "POST", { amountMinor: 120000, currency: "CNY", message: "Fixture" }),
+    db,
+    reference,
+  ));
+  const orderRow = db.database.prepare("SELECT id, version FROM orders WHERE public_reference = ?").get(reference);
+  const offerResponse = await onAdminOffer(adminContext(
+    jsonRequest(`/api/admin/orders/${orderRow.id}/offers`, "POST", { version: 2, amountMinor: 150000, currency: "CNY", message: "Fixture" }),
+    db,
+    orderRow.id,
+  ));
+  const offerBody = await offerResponse.json();
+  const offerId = offerBody.order.offers.find((offer) => offer.proposedBy === "admin").id;
+
+  const holdResponse = await onAdminHold(adminContext(
+    jsonRequest(`/api/admin/orders/${orderRow.id}/hold`, "POST", { version: 3, offerId, durationMinutes: 60 }),
+    db,
+    orderRow.id,
+  ));
+  assert.equal(holdResponse.status, 201);
+  const holdBody = await holdResponse.json();
+  assert.equal(holdBody.order.status, "awaiting_payment");
+  assert.equal(holdBody.order.version, 4);
+  assert.ok(holdBody.order.activeHold);
+  assert.equal(db.database.prepare("SELECT sale_status FROM artworks WHERE id = 'guiquilaixi'").get().sale_status, "held");
+  assert.equal(db.database.prepare("SELECT status FROM offers WHERE id = ?").get(offerId).status, "accepted");
+  assert.equal(db.database.prepare("SELECT COUNT(*) AS count FROM admin_audit_log WHERE action = 'create_inventory_hold'").get().count, 1);
+
+  const blocked = await createInquiry(db, "stage3-order-004");
+  assert.equal(blocked.status, 409);
+  assert.equal(db.database.prepare("SELECT COUNT(*) AS count FROM orders").get().count, 1);
+
+  const release = await onAdminReleaseHold(adminContext(
+    jsonRequest(`/api/admin/orders/${orderRow.id}/release-hold`, "POST", { version: 4 }),
+    db,
+    orderRow.id,
+  ));
+  assert.equal(release.status, 200);
+  const releaseBody = await release.json();
+  assert.equal(releaseBody.order.status, "negotiating");
+  assert.equal(releaseBody.order.version, 5);
+  assert.equal(db.database.prepare("SELECT sale_status FROM artworks WHERE id = 'guiquilaixi'").get().sale_status, "available");
+  assert.equal(db.database.prepare("SELECT status FROM inventory_holds").get().status, "released");
+
+  const cancelled = await onAdminOrder(adminContext(
+    jsonRequest(`/api/admin/orders/${orderRow.id}`, "PATCH", { version: 5, status: "cancelled" }),
+    db,
+    orderRow.id,
+  ));
+  assert.equal(cancelled.status, 200);
+  const stale = await onAdminOrder(adminContext(
+    jsonRequest(`/api/admin/orders/${orderRow.id}`, "PATCH", { version: 5, status: "negotiating" }),
+    db,
+    orderRow.id,
+  ));
+  assert.equal(stale.status, 409);
+});
+
+test("admin order list is no-store and malformed public input does not write", async () => {
+  const db = makeD1();
+  const invalid = await onPublicCreate({
+    request: jsonRequest("/api/orders", "POST", {
+      artworkId: "guiquilaixi'; DROP TABLE orders; --",
+      customerName: "Fixture",
+      customerContact: "fixture",
+      unexpected: "rejected",
+    }),
+    params: {},
+    env: { DB: db },
+  });
+  assert.equal(invalid.status, 400);
+  assert.equal(db.database.prepare("SELECT COUNT(*) AS count FROM orders").get().count, 0);
+
+  const list = await onAdminOrders(adminContext(
+    new Request("https://preview.example.test/api/admin/orders"),
+    db,
+    "unused",
+  ));
+  assert.equal(list.status, 200);
+  assert.equal(list.headers.get("cache-control"), "no-store");
+  assert.deepEqual((await list.json()).orders, []);
+});
+
+test("expired holds are released before a new inquiry checks availability", async () => {
+  const db = makeD1();
+  const inquiry = await createInquiry(db, "stage3-order-expiry");
+  const reference = (await inquiry.json()).order.reference;
+  await onPublicOffer(publicContext(
+    jsonRequest(`/api/orders/${reference}/offers`, "POST", { amountMinor: 120000, currency: "CNY", message: "Fixture" }),
+    db,
+    reference,
+  ));
+  const orderRow = db.database.prepare("SELECT id FROM orders WHERE public_reference = ?").get(reference);
+  const offer = await onAdminOffer(adminContext(
+    jsonRequest(`/api/admin/orders/${orderRow.id}/offers`, "POST", { version: 2, amountMinor: 150000, currency: "CNY", message: "Fixture" }),
+    db,
+    orderRow.id,
+  ));
+  const offerId = (await offer.json()).order.offers.find((item) => item.proposedBy === "admin").id;
+  await onAdminHold(adminContext(
+    jsonRequest(`/api/admin/orders/${orderRow.id}/hold`, "POST", { version: 3, offerId, durationMinutes: 60 }),
+    db,
+    orderRow.id,
+  ));
+  db.database.prepare("UPDATE inventory_holds SET expires_at = '2000-01-01T00:00:00.000Z'").run();
+
+  const next = await createInquiry(db, "stage3-order-expiry-next");
+  assert.equal(next.status, 201);
+  assert.equal(db.database.prepare("SELECT sale_status FROM artworks WHERE id = 'guiquilaixi'").get().sale_status, "available");
+  assert.equal(db.database.prepare("SELECT status FROM inventory_holds").get().status, "expired");
+  assert.equal(db.database.prepare("SELECT status FROM orders WHERE id = ?").get(orderRow.id).status, "negotiating");
+});
+
+test("failed hold audit rolls back offer acceptance and inventory changes", async () => {
+  const db = makeD1();
+  const inquiry = await createInquiry(db, "stage3-order-005");
+  const reference = (await inquiry.json()).order.reference;
+  await onPublicOffer(publicContext(
+    jsonRequest(`/api/orders/${reference}/offers`, "POST", { amountMinor: 120000, currency: "CNY", message: "Fixture" }),
+    db,
+    reference,
+  ));
+  const orderRow = db.database.prepare("SELECT id FROM orders WHERE public_reference = ?").get(reference);
+  const offer = await onAdminOffer(adminContext(
+    jsonRequest(`/api/admin/orders/${orderRow.id}/offers`, "POST", { version: 2, amountMinor: 150000, currency: "CNY", message: "Fixture" }),
+    db,
+    orderRow.id,
+  ));
+  const offerId = (await offer.json()).order.offers.find((item) => item.proposedBy === "admin").id;
+  db.setFailAudit(true);
+  const response = await onAdminHold(adminContext(
+    jsonRequest(`/api/admin/orders/${orderRow.id}/hold`, "POST", { version: 3, offerId, durationMinutes: 60 }),
+    db,
+    orderRow.id,
+  ));
+  assert.equal(response.status, 503);
+  assert.equal(db.database.prepare("SELECT status FROM orders WHERE id = ?").get(orderRow.id).status, "negotiating");
+  assert.equal(db.database.prepare("SELECT sale_status FROM artworks WHERE id = 'guiquilaixi'").get().sale_status, "available");
+  assert.equal(db.database.prepare("SELECT COUNT(*) AS count FROM inventory_holds").get().count, 0);
+  assert.equal(db.database.prepare("SELECT status FROM offers WHERE id = ?").get(offerId).status, "pending");
+});

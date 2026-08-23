@@ -2,6 +2,8 @@
 // Artist, people, and inquiry panels intentionally remain legacy local features.
 
 let adminWorks = [];
+let adminOrders = [];
+let selectedOrderId = "";
 let selectedPortraitData = "";
 
 function setAdminStatus(message, isError = false) {
@@ -79,6 +81,88 @@ function renderAdminWorks() {
     item.append(image, copy, actions);
     list.append(item);
   }
+}
+
+function selectedOrder() {
+  return adminOrders.find((order) => order.id === selectedOrderId) || null;
+}
+
+function renderOrderTools() {
+  const order = selectedOrder();
+  const summary = byId("selectedOrderSummary");
+  const offerForm = byId("offerForm");
+  const holdForm = byId("holdForm");
+  const statusForm = byId("orderStatusForm");
+  if (!order) {
+    summary.textContent = t("selectOrder");
+    offerForm.hidden = true;
+    holdForm.hidden = true;
+    statusForm.hidden = true;
+    return;
+  }
+
+  summary.textContent = `${order.artwork.titleZh} · ${order.customer.name} · ${order.customer.contact} · ${t(order.status)} · v${order.version}`;
+  offerForm.hidden = !["submitted", "negotiating"].includes(order.status);
+  holdForm.hidden = !["negotiating", "awaiting_payment"].includes(order.status);
+  statusForm.hidden = order.status === "cancelled";
+
+  const pendingOffers = order.offers.filter((offer) => offer.status === "pending");
+  const offerSelect = byId("holdOffer");
+  offerSelect.replaceChildren(
+    ...pendingOffers.map((offer) => new Option(
+      `${t(offer.proposedBy === "admin" ? "adminOffer" : "customerOffer")} · ${offer.amountMinor} ${offer.currency}`,
+      offer.id,
+    )),
+  );
+  byId("createHold").disabled = !pendingOffers.length || Boolean(order.activeHold);
+  byId("releaseHold").disabled = !order.activeHold;
+  byId("orderStatus").value = ["negotiating", "awaiting_payment", "cancelled"].includes(order.status)
+    ? order.status
+    : "negotiating";
+}
+
+function renderAdminOrders() {
+  const list = byId("orderAdminList");
+  list.replaceChildren();
+  if (!adminOrders.length) {
+    list.append(textElement("div", t("noOrders"), "empty-state"));
+    renderOrderTools();
+    return;
+  }
+  for (const order of adminOrders) {
+    const item = document.createElement("div");
+    item.className = "admin-item";
+    const image = document.createElement("img");
+    image.src = order.artwork.image;
+    image.alt = order.artwork.titleZh;
+    const copy = document.createElement("div");
+    copy.append(
+      textElement("h3", order.artwork.titleZh),
+      textElement("p", `${order.customer.name} · ${order.customer.contact}`),
+      textElement("p", `${t(order.status)} · v${order.version} · ${order.reference}`, "form-note"),
+    );
+    if (order.latestOffer) {
+      copy.append(textElement(
+        "p",
+        `${t(order.latestOffer.proposedBy === "admin" ? "adminOffer" : "customerOffer")} · ${order.latestOffer.amountMinor} ${order.latestOffer.currency} · ${t(order.latestOffer.status)}`,
+      ));
+    }
+    const actions = document.createElement("div");
+    actions.className = "item-actions";
+    const select = textElement("button", t("edit"), "icon-button");
+    select.type = "button";
+    select.dataset.selectOrder = order.id;
+    actions.append(select);
+    item.append(image, copy, actions);
+    list.append(item);
+  }
+  renderOrderTools();
+}
+
+function syncAdminOrder(order) {
+  adminOrders = adminOrders.map((item) => (item.id === order.id ? order : item));
+  selectedOrderId = order.id;
+  renderAdminOrders();
 }
 
 function renderPeople() {
@@ -200,6 +284,22 @@ async function loadAdminWorks() {
   }
 }
 
+async function loadAdminOrders() {
+  setAdminStatus(t("ordersLoading"));
+  try {
+    const result = await requestJson("/api/admin/orders");
+    adminOrders = result.orders || [];
+    if (selectedOrderId && !adminOrders.some((order) => order.id === selectedOrderId)) selectedOrderId = "";
+    renderAdminOrders();
+    setAdminStatus(t("ordersReady"));
+  } catch {
+    adminOrders = [];
+    selectedOrderId = "";
+    renderAdminOrders();
+    setAdminStatus(t("adminAccessUnavailable"), true);
+  }
+}
+
 function renderLegacyPanels() {
   applyLanguage();
   renderPeople();
@@ -211,9 +311,10 @@ document.querySelectorAll("[data-admin-tab]").forEach((button) => {
   button.addEventListener("click", () => {
     document.querySelectorAll("[data-admin-tab]").forEach((tab) => tab.classList.remove("is-active"));
     button.classList.add("is-active");
-    ["Works", "Artist", "People", "Inquiries"].forEach((name) => {
+    ["Works", "Artist", "People", "Orders", "Inquiries"].forEach((name) => {
       byId(`admin${name}`).hidden = button.dataset.adminTab !== name.toLowerCase();
     });
+    if (button.dataset.adminTab === "orders") loadAdminOrders();
   });
 });
 
@@ -249,6 +350,105 @@ byId("workForm").addEventListener("submit", async (event) => {
 
 byId("resetWorkForm").addEventListener("click", resetWorkForm);
 byId("reloadWorks").addEventListener("click", loadAdminWorks);
+byId("reloadOrders").addEventListener("click", loadAdminOrders);
+
+byId("offerForm").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const order = selectedOrder();
+  if (!order) return;
+  const button = event.target.querySelector('button[type="submit"]');
+  button.disabled = true;
+  try {
+    const result = await requestJson(`/api/admin/orders/${encodeURIComponent(order.id)}/offers`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        version: order.version,
+        amountMinor: Number(byId("orderOfferAmount").value),
+        currency: byId("orderOfferCurrency").value.trim().toUpperCase(),
+        message: byId("orderOfferMessage").value.trim(),
+      }),
+    });
+    syncAdminOrder(result.order);
+    event.target.reset();
+    byId("orderOfferCurrency").value = "CNY";
+    setAdminStatus(t("adminSaved"));
+  } catch (error) {
+    setAdminStatus(error.status === 409 ? t("adminVersionConflict") : t("adminSaveFailed"), true);
+    if (error.status === 409) await loadAdminOrders();
+  } finally {
+    button.disabled = false;
+  }
+});
+
+byId("holdForm").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const order = selectedOrder();
+  if (!order) return;
+  const button = byId("createHold");
+  button.disabled = true;
+  try {
+    const result = await requestJson(`/api/admin/orders/${encodeURIComponent(order.id)}/hold`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        version: order.version,
+        offerId: byId("holdOffer").value,
+        durationMinutes: Number(byId("holdDuration").value),
+      }),
+    });
+    syncAdminOrder(result.order);
+    setAdminStatus(t("adminSaved"));
+  } catch (error) {
+    setAdminStatus(error.status === 409 ? t("adminVersionConflict") : t("adminSaveFailed"), true);
+    if (error.status === 409) await loadAdminOrders();
+  } finally {
+    button.disabled = false;
+  }
+});
+
+byId("releaseHold").addEventListener("click", async () => {
+  const order = selectedOrder();
+  if (!order?.activeHold) return;
+  const button = byId("releaseHold");
+  button.disabled = true;
+  try {
+    const result = await requestJson(`/api/admin/orders/${encodeURIComponent(order.id)}/release-hold`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ version: order.version }),
+    });
+    syncAdminOrder(result.order);
+    setAdminStatus(t("adminSaved"));
+  } catch (error) {
+    setAdminStatus(error.status === 409 ? t("adminVersionConflict") : t("adminSaveFailed"), true);
+    if (error.status === 409) await loadAdminOrders();
+  } finally {
+    button.disabled = false;
+  }
+});
+
+byId("orderStatusForm").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const order = selectedOrder();
+  if (!order) return;
+  const button = event.target.querySelector('button[type="submit"]');
+  button.disabled = true;
+  try {
+    const result = await requestJson(`/api/admin/orders/${encodeURIComponent(order.id)}`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ version: order.version, status: byId("orderStatus").value }),
+    });
+    syncAdminOrder(result.order);
+    setAdminStatus(t("adminSaved"));
+  } catch (error) {
+    setAdminStatus(error.status === 409 ? t("adminVersionConflict") : t("adminSaveFailed"), true);
+    if (error.status === 409) await loadAdminOrders();
+  } finally {
+    button.disabled = false;
+  }
+});
 
 byId("artistForm").addEventListener("submit", (event) => {
   event.preventDefault();
@@ -283,6 +483,11 @@ document.addEventListener("click", (event) => {
   if (editButton) {
     const work = adminWorks.find((item) => item.id === editButton.dataset.editWork);
     if (work) fillWorkForm(work);
+  }
+  const selectOrderButton = event.target.closest("[data-select-order]");
+  if (selectOrderButton) {
+    selectedOrderId = selectOrderButton.dataset.selectOrder;
+    renderAdminOrders();
   }
   const removePerson = event.target.closest("[data-remove-person]");
   if (removePerson) {

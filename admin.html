@@ -43,6 +43,7 @@
           <button class="tab is-active" data-admin-tab="works" data-i18n="tabWorks" type="button">作品管理</button>
           <button class="tab" data-admin-tab="artist" data-i18n="tabArtist" type="button">艺术家资料</button>
           <button class="tab" data-admin-tab="people" data-i18n="tabPeople" type="button">人员</button>
+          <button class="tab" data-admin-tab="orders" data-i18n="tabOrders" type="button">商务咨询</button>
           <button class="tab" data-admin-tab="inquiries" data-i18n="tabInquiries" type="button">咨询记录</button>
         </div>
 
@@ -122,6 +123,58 @@
           <div class="admin-list" id="workAdminList"></div>
         </div>
 
+        <!-- 服务端商务咨询与议价 -->
+        <div class="admin-panel admin-orders-panel" id="adminOrders" hidden>
+          <div>
+            <p class="form-note" data-i18n="adminOrdersNotice">这里是服务端咨询与议价流程；旧浏览器里的咨询记录不会自动迁移。</p>
+            <button class="secondary-button" id="reloadOrders" type="button" data-i18n="reloadOrders">重新加载咨询</button>
+            <div class="admin-list" id="orderAdminList"></div>
+          </div>
+          <div class="admin-order-tools">
+            <p class="form-note" id="selectedOrderSummary" data-i18n="selectOrder">请选择一条咨询</p>
+            <form class="admin-form" id="offerForm" hidden>
+              <label>
+                <span data-i18n="offerAmount">报价金额（分）</span>
+                <input id="orderOfferAmount" type="number" min="0" step="1" required />
+              </label>
+              <label>
+                <span data-i18n="currency">币种</span>
+                <input id="orderOfferCurrency" maxlength="3" value="CNY" required />
+              </label>
+              <label>
+                <span data-i18n="offerMessage">报价说明</span>
+                <textarea id="orderOfferMessage" rows="3"></textarea>
+              </label>
+              <button class="primary-button" type="submit" data-i18n="sendOffer">发送报价</button>
+            </form>
+            <form class="admin-form" id="holdForm" hidden>
+              <label>
+                <span data-i18n="holdOffer">接受哪一份报价</span>
+                <select id="holdOffer" required></select>
+              </label>
+              <label>
+                <span data-i18n="holdDuration">占用时长（分钟）</span>
+                <input id="holdDuration" type="number" min="5" max="43200" step="5" value="1440" required />
+              </label>
+              <div class="form-actions">
+                <button class="primary-button" id="createHold" type="submit" data-i18n="createHold">接受报价并占用作品</button>
+                <button class="secondary-button" id="releaseHold" type="button" data-i18n="releaseHold">释放作品占用</button>
+              </div>
+            </form>
+            <form class="admin-form" id="orderStatusForm" hidden>
+              <label>
+                <span data-i18n="orderStatus">订单阶段</span>
+                <select id="orderStatus">
+                  <option value="negotiating" data-i18n="negotiating">议价中</option>
+                  <option value="awaiting_payment" data-i18n="awaiting_payment">待线下付款确认</option>
+                  <option value="cancelled" data-i18n="cancelled">已取消</option>
+                </select>
+              </label>
+              <button class="secondary-button" type="submit" data-i18n="submitOrderStatus">保存阶段</button>
+            </form>
+          </div>
+        </div>
+
         <!-- 艺术家资料 -->
         <div class="admin-panel" id="adminArtist" hidden>
           <p class="form-note legacy-notice" data-i18n="adminLegacyNotice">旧本地功能 / 本阶段未迁移：内容仍只保存在当前浏览器，不代表跨设备保存。</p>
@@ -180,7 +233,7 @@
       <a href="index.html" data-i18n="footerAdmin">返回首页</a>
     </footer>
 
-    <script src="common.js?v=20260823-commerce-phase2"></script>
-    <script src="admin.js?v=20260823-commerce-phase2"></script>
+    <script src="common.js?v=20260823-commerce-phase3"></script>
+    <script src="admin.js?v=20260823-commerce-phase3"></script>
   </body>
 </html>

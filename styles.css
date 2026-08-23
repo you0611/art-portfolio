@@ -1463,6 +1463,16 @@ label span {
   border: 1px solid var(--line);
 }
 
+.admin-order-tools {
+  display: grid;
+  align-content: start;
+  gap: 16px;
+}
+
+.admin-order-tools .admin-form {
+  padding: 22px;
+}
+
 .admin-item {
   display: grid;
   grid-template-columns: 64px minmax(0, 1fr) auto;
