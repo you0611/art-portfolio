@@ -6,10 +6,9 @@ import test from "node:test";
 import { AccessConfigurationError, normalizeAccessConfig } from "../functions/_lib/access.js";
 import { onRequest as onAdminMiddleware } from "../functions/api/admin/_middleware.js";
 
-const migrationSql = readFileSync(
-  new URL("../migrations/0001_commerce_foundation.sql", import.meta.url),
-  "utf8",
-);
+const migrationSql = ["0001_commerce_foundation.sql", "0006_stage5_media.sql"]
+  .map((file) => readFileSync(new URL(`../migrations/${file}`, import.meta.url), "utf8"))
+  .join("\n");
 
 function migratedDatabase() {
   const database = new DatabaseSync(":memory:");

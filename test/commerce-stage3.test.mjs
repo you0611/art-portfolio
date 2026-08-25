@@ -19,6 +19,7 @@ const migrationSql = [
   "0002_stage3_orders.sql",
   "0003_stage5_followup.sql",
   "0004_stage5_email_outbox.sql",
+  "0006_stage5_media.sql",
 ]
   .map((name) => readFileSync(new URL(`../migrations/${name}`, import.meta.url), "utf8"))
   .join("\n");

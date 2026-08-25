@@ -5,6 +5,7 @@
 generate_*.py
 node_modules/
 dist/
+_worker.bundle
 .wrangler/
 private-backup/
 .dev.vars

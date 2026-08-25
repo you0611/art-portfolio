@@ -26,14 +26,15 @@ function setAdminStatus(message, isError = false) {
 }
 
 async function requestJson(path, options = {}) {
+  const { timeoutMs = REQUEST_TIMEOUT_MS, ...fetchOptions } = options;
   const headers = new Headers(options.headers || {});
   headers.set("accept", "application/json");
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
   let response;
   let body = null;
   try {
-    response = await fetch(path, { ...options, headers, cache: "no-store", signal: controller.signal });
+    response = await fetch(path, { ...fetchOptions, headers, cache: "no-store", signal: controller.signal });
     try {
       body = await response.json();
     } catch (cause) {
@@ -60,6 +61,28 @@ function requestFailureText(error, fallbackKey = "adminSaveFailed") {
   if (error?.code === "REQUEST_TIMEOUT") return t("adminRequestTimeout");
   if (error?.code === "NETWORK_UNAVAILABLE") return t("adminNetworkUnavailable");
   return t(fallbackKey);
+}
+
+function mediaFailureText(error) {
+  if (error?.code === "MEDIA_STORAGE_NOT_CONFIGURED") return t("mediaStorageUnavailable");
+  if (String(error?.code || "").startsWith("MEDIA_") || error?.status === 413 || error?.status === 415) {
+    return t("mediaInvalid");
+  }
+  return requestFailureText(error);
+}
+
+function formatMediaBytes(bytes) {
+  if (!Number.isFinite(bytes)) return "-";
+  return `${(bytes / 1024 / 1024).toFixed(bytes >= 1024 * 1024 ? 1 : 2)} MB`;
+}
+
+function mediaSummary(work) {
+  if (!work?.mediaId) return t("mediaLegacyActive");
+  return t("mediaStoredActive")
+    .replace("{name}", work.mediaFilename || "image")
+    .replace("{width}", work.mediaWidth || "-")
+    .replace("{height}", work.mediaHeight || "-")
+    .replace("{size}", formatMediaBytes(work.mediaByteSize));
 }
 
 function textElement(tag, text, className = "") {
@@ -439,6 +462,10 @@ function resetWorkForm() {
   byId("contentStatus").value = "published";
   byId("status").value = "available";
   byId("negotiationEnabled").checked = true;
+  byId("mediaFile").value = "";
+  byId("uploadMedia").disabled = true;
+  byId("restoreMedia").disabled = true;
+  byId("mediaCurrent").textContent = t("mediaLegacyActive");
   setAdminStatus(t("adminWorkEditOnly"));
 }
 
@@ -459,6 +486,12 @@ function fillWorkForm(work) {
   byId("hidePrice").checked = work.priceVisibility === "private_quote";
   byId("negotiationEnabled").checked = work.negotiationEnabled;
   byId("image").value = work.image;
+  byId("mediaPreview").src = work.image;
+  byId("mediaPreview").alt = work.titleZh;
+  byId("mediaCurrent").textContent = mediaSummary(work);
+  byId("mediaFile").value = "";
+  byId("uploadMedia").disabled = true;
+  byId("restoreMedia").disabled = !work.mediaCanRestore;
   byId("descriptionZh").value = work.descriptionZh;
   byId("descriptionEn").value = work.descriptionEn;
   location.hash = "admin";
@@ -620,6 +653,58 @@ byId("workForm").addEventListener("submit", async (event) => {
 
 byId("resetWorkForm").addEventListener("click", resetWorkForm);
 byId("reloadWorks").addEventListener("click", loadAdminWorks);
+byId("mediaFile").addEventListener("change", () => {
+  byId("uploadMedia").disabled = !byId("workId").value || !byId("mediaFile").files?.length;
+});
+byId("uploadMedia").addEventListener("click", async () => {
+  const id = byId("workId").value;
+  const file = byId("mediaFile").files?.[0];
+  if (!id || !file) {
+    setAdminStatus(t("mediaFileRequired"), true);
+    return;
+  }
+  const button = byId("uploadMedia");
+  button.disabled = true;
+  byId("restoreMedia").disabled = true;
+  setAdminStatus(t("mediaUploading"));
+  const form = new FormData();
+  form.append("version", byId("workVersion").value);
+  form.append("file", file, file.name);
+  try {
+    const result = await requestJson(`/api/admin/artworks/${encodeURIComponent(id)}/media`, {
+      method: "POST",
+      body: form,
+      timeoutMs: 60000,
+    });
+    adminWorks = adminWorks.map((work) => (work.id === id ? result.artwork : work));
+    renderAdminWorks();
+    fillWorkForm(result.artwork);
+    setAdminStatus(t("mediaUploaded"));
+  } catch (error) {
+    setAdminStatus(error.status === 409 ? t("adminVersionConflict") : mediaFailureText(error), true);
+    button.disabled = false;
+  }
+});
+byId("restoreMedia").addEventListener("click", async () => {
+  const id = byId("workId").value;
+  if (!id) return;
+  const button = byId("restoreMedia");
+  button.disabled = true;
+  try {
+    const result = await requestJson(`/api/admin/artworks/${encodeURIComponent(id)}/media/restore`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ version: Number(byId("workVersion").value) }),
+    });
+    adminWorks = adminWorks.map((work) => (work.id === id ? result.artwork : work));
+    renderAdminWorks();
+    fillWorkForm(result.artwork);
+    setAdminStatus(t("mediaRestored"));
+  } catch (error) {
+    setAdminStatus(error.status === 409 ? t("adminVersionConflict") : requestFailureText(error), true);
+    button.disabled = false;
+  }
+});
 byId("reloadOrders").addEventListener("click", loadAdminOrders);
 byId("dispatchEmailOutbox").addEventListener("click", async () => {
   const button = byId("dispatchEmailOutbox");

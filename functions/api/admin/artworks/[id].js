@@ -50,10 +50,7 @@ async function patchArtwork(context, id) {
     );
   }
 
-  let updated = updateResult.results?.[0] || null;
-  if (!updated) {
-    updated = await context.env.DB.prepare(ADMIN_ARTWORK_BY_ID_SQL).bind(id).first();
-  }
+  const updated = await context.env.DB.prepare(ADMIN_ARTWORK_BY_ID_SQL).bind(id).first();
   if (!updated) return adminServiceUnavailable();
 
   return adminJson(

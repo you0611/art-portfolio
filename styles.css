@@ -1208,6 +1208,58 @@ label span {
   font-size: 12px;
 }
 
+.media-manager {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 120px;
+  gap: 16px 22px;
+  align-items: center;
+  padding: 20px;
+  background: var(--panel);
+}
+
+.media-manager-copy {
+  min-width: 0;
+}
+
+.media-manager-copy h3 {
+  margin: 0 0 8px;
+  font-size: 16px;
+}
+
+.media-manager-copy .form-note + .form-note {
+  margin-top: 6px;
+  color: var(--muted);
+}
+
+.media-manager-preview {
+  grid-row: span 2;
+}
+
+.media-manager-preview img {
+  display: block;
+  width: 120px;
+  height: 96px;
+  object-fit: cover;
+  background: var(--line);
+}
+
+.media-file-field {
+  min-width: 0;
+}
+
+.media-file-field input {
+  width: 100%;
+}
+
+.media-actions {
+  margin: 0;
+}
+
+.media-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.52;
+}
+
 .inquiry-form select:disabled,
 .inquiry-form button:disabled {
   cursor: not-allowed;
@@ -2045,6 +2097,20 @@ label span {
 
   .form-grid {
     grid-template-columns: 1fr;
+  }
+
+  .media-manager {
+    grid-template-columns: 1fr;
+  }
+
+  .media-manager-preview {
+    grid-row: auto;
+  }
+
+  .media-manager-preview img {
+    width: 100%;
+    height: auto;
+    max-height: 240px;
   }
 
   .admin-tabs {

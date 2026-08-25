@@ -61,7 +61,7 @@ try {
     "d1", "execute", database,
     "--local", "--cwd", sourceRoot,
     "--command",
-    "INSERT INTO orders (id, public_reference, customer_name, customer_email, customer_contact, preferred_language, idempotency_key) VALUES ('fixture-order', 'YX-FIXTURE', 'Fixture', 'fixture@example.invalid', 'fixture-only', 'zh', 'fixture-idempotency'); INSERT INTO order_items (id, order_id, artwork_id) VALUES ('fixture-item', 'fixture-order', 'guiquilaixi');",
+    "INSERT INTO orders (id, public_reference, customer_name, customer_email, customer_contact, preferred_language, idempotency_key) VALUES ('fixture-order', 'YX-FIXTURE', 'Fixture', 'fixture@example.invalid', 'fixture-only', 'zh', 'fixture-idempotency'); INSERT INTO order_items (id, order_id, artwork_id) VALUES ('fixture-item', 'fixture-order', 'guiquilaixi'); UPDATE artworks SET primary_media_id = 'media-fixture', version = 2 WHERE id = 'guiquilaixi'; INSERT INTO media_assets (id, artwork_id, object_key, original_filename, mime_type, byte_size, width, height, sha256, status, created_by) VALUES ('media-fixture', 'guiquilaixi', 'artworks/guiquilaixi/media-fixture.jpg', 'fixture.jpg', 'image/jpeg', 1024, 800, 600, '0000000000000000000000000000000000000000000000000000000000000000', 'active', 'fixture@example.invalid'); INSERT INTO artwork_media_revisions (id, artwork_id, version, previous_media_id, previous_image_url, replacement_media_id, admin_email, request_id) VALUES ('media-revision-fixture', 'guiquilaixi', 1, NULL, '/assets/guiquilaixi.jpg', 'media-fixture', 'fixture@example.invalid', 'media-request-fixture');",
   ]);
   runWrangler([
     "d1", "export", database,
@@ -77,7 +77,7 @@ try {
     "d1", "execute", database,
     "--local", "--cwd", restoredRoot,
     "--command",
-    "SELECT (SELECT COUNT(*) FROM artworks) AS artworks, (SELECT COUNT(*) FROM orders) AS orders, (SELECT COUNT(*) FROM notification_events) AS events, (SELECT COUNT(*) FROM email_outbox) AS outbox, (SELECT COUNT(*) FROM site_profiles) AS profiles, (SELECT COUNT(*) FROM site_entries) AS content_entries, (SELECT COUNT(*) FROM sqlite_master WHERE type = 'index' AND name = 'one_active_hold_per_artwork_idx') AS hold_index, (SELECT COUNT(*) FROM sqlite_master WHERE type = 'trigger' AND name = 'notification_events_email_outbox') AS outbox_trigger;",
+    "SELECT (SELECT COUNT(*) FROM artworks) AS artworks, (SELECT COUNT(*) FROM orders) AS orders, (SELECT COUNT(*) FROM notification_events) AS events, (SELECT COUNT(*) FROM email_outbox) AS outbox, (SELECT COUNT(*) FROM site_profiles) AS profiles, (SELECT COUNT(*) FROM site_entries) AS content_entries, (SELECT COUNT(*) FROM media_assets) AS media_assets, (SELECT COUNT(*) FROM artwork_media_revisions) AS media_revisions, (SELECT COUNT(*) FROM sqlite_master WHERE type = 'index' AND name = 'one_active_hold_per_artwork_idx') AS hold_index, (SELECT COUNT(*) FROM sqlite_master WHERE type = 'trigger' AND name = 'notification_events_email_outbox') AS outbox_trigger;",
     "--json",
   ]);
   const result = queryResult(stdout);
@@ -88,6 +88,8 @@ try {
     outbox: 1,
     profiles: 1,
     content_entries: 22,
+    media_assets: 1,
+    media_revisions: 1,
     hold_index: 1,
     outbox_trigger: 1,
   });
@@ -99,7 +101,7 @@ try {
     "INSERT INTO orders (id, public_reference, customer_name, customer_email, customer_contact, preferred_language, idempotency_key) VALUES ('fixture-order-duplicate', 'YX-FIXTURE-2', 'Fixture', 'fixture@example.invalid', 'fixture-only', 'zh', 'fixture-idempotency');",
   ], { expectFailure: true });
 
-  console.log("Verified isolated D1 export/restore: 17 artworks, 22 content entries, 1 profile, 1 fixture order, notification/outbox triggers, and idempotency constraint.");
+  console.log("Verified isolated D1 export/restore: 17 artworks, 22 content entries, 1 profile, 1 fixture order, media metadata/revision, notification/outbox triggers, and idempotency constraint. R2 object backup remains a separate operation.");
 } finally {
   await rm(temporaryRoot, { recursive: true, force: true });
 }

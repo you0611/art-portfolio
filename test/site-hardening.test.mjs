@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import test from "node:test";
 
 function read(relativePath) {
@@ -32,6 +32,20 @@ test("work pages keep valid quoted metadata and eager artwork loading", () => {
     assert.match(source, /&quot;/);
     assert.match(source, /loading="eager" decoding="async"/);
   }
+});
+
+test("standalone work pages retain static image fallbacks and load server-managed primary images", () => {
+  const pages = readdirSync(new URL("../works", import.meta.url)).filter((name) => name.endsWith(".html"));
+  assert.equal(pages.length, 14);
+  for (const page of pages) {
+    const source = readFileSync(new URL(`../works/${page}`, import.meta.url), "utf8");
+    assert.match(source, /<img src="\.\.\/assets\/[^"]+\.jpg"/);
+    assert.match(source, /<script src="\.\.\/work-detail\.js\?v=20260825-media"><\/script>/);
+  }
+  const script = readFileSync(new URL("../work-detail.js", import.meta.url), "utf8");
+  assert.match(script, /fetch\("\/api\/artworks"/);
+  assert.match(script, /image\.src = fallback/);
+  assert.doesNotMatch(script, /innerHTML/);
 });
 
 test("inquiry flow explains the next step and disables empty inventory", () => {

@@ -7,10 +7,9 @@ import { onRequest as onAdminMiddleware } from "../functions/api/admin/_middlewa
 import { onRequest as onArtworkList } from "../functions/api/admin/artworks/index.js";
 import { onRequest as onArtworkById } from "../functions/api/admin/artworks/[id].js";
 
-const migrationSql = readFileSync(
-  new URL("../migrations/0001_commerce_foundation.sql", import.meta.url),
-  "utf8",
-);
+const migrationSql = ["0001_commerce_foundation.sql", "0006_stage5_media.sql"]
+  .map((file) => readFileSync(new URL(`../migrations/${file}`, import.meta.url), "utf8"))
+  .join("\n");
 
 class D1PreparedShim {
   constructor(database, sql, values = []) {

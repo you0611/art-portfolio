@@ -15,14 +15,14 @@
 - 后端：Cloudflare Pages Functions。
 - 数据库：Cloudflare D1（SQLite 语义），binding 名称固定为 `DB`。
 - 后台认证：Cloudflare Access；Pages Functions 再校验 Access JWT 的签名、issuer、audience 和唯一管理员邮箱。
-- 图片：现有图片继续作为静态资源。后台上传图片留到后续阶段，再评估 Cloudflare R2。
+- 图片：作品主图使用私有 Cloudflare R2 binding `MEDIA`；现有静态图片继续保留为回退基线。当前只完成本地模拟存储，尚未创建 Preview/Production R2。
 - 支付：未选择，数据库和 API 不依赖具体支付服务商。
 
 选择这一组合是为了沿用已有 Cloudflare Pages 发布边界，减少新服务器、补丁、端口和操作系统维护。代价是后端运行与数据层依赖 Cloudflare 平台。
 
 ## 数据库边界
 
-迁移 `0001_commerce_foundation.sql` 创建基础表；`0002_stage3_orders.sql` 增加服务端客户联系方式和幂等键；`0003_stage5_followup.sql` 增加本地运营跟进与通知事件记录；`0004_stage5_email_outbox.sql` 增加邮件出站队列：
+迁移 `0001_commerce_foundation.sql` 创建基础表；`0002_stage3_orders.sql` 增加服务端客户联系方式和幂等键；`0003_stage5_followup.sql` 增加本地运营跟进与通知事件记录；`0004_stage5_email_outbox.sql` 增加邮件出站队列；`0005_stage5_content.sql` 增加站点内容；`0006_stage5_media.sql` 增加作品媒体元数据与回退记录：
 
 - `artworks`：作品内容、展示状态、销售状态和议价开关。
 - `orders` / `order_items`：客户订单及对应的单件原创作品。
@@ -34,6 +34,8 @@
 - `orders.follow_up_status`、`orders.next_follow_up_at`、`orders.admin_note`：独立于交易阶段的跟进状态、下一次跟进时间和管理员备注。
 - `notification_events`：新咨询、新报价和订单阶段变化的内部事件记录；事件本身仍不直接发送外部消息，`failed` 状态及失败信息为投递保留。
 - `email_outbox`：由通知事件触发的邮件出站队列，记录管理员/客户收件人类型、模板、投递状态、尝试次数和失败信息；默认使用本地假发送器，也支持显式切换到 Gmail API。
+- `media_assets`：只保存对象键、原文件名、真实类型、字节数、尺寸、SHA-256 和状态，不把图片二进制写入 D1。
+- `artwork_media_revisions`：记录每次主图替换前的媒体引用和静态回退路径；恢复只切换引用，不删除旧对象。
 
 展示状态与销售状态分离。金额使用整数最小货币单位并附三位币种代码，避免浮点金额。初始 17 件作品均启用议价，现有 12 件为 `available`、5 件为 `sold`。
 
@@ -58,6 +60,9 @@
 - `GET /api/admin/content`、`PATCH /api/admin/content/profile`：读取和编辑固定白名单资料字段，要求当前 `version`。
 - `POST /api/admin/content/entries`、`PATCH /api/admin/content/entries/:id`：新建或编辑履历、活动、人物和合作条目；内容只允许草稿、发布、归档，不提供物理删除。
 - `POST /api/admin/content/profile/restore`、`POST /api/admin/content/entries/:id/restore`：恢复上一版，同时把恢复前状态写入修订记录，便于再次回退。
+- `POST /api/admin/artworks/:id/media`：验证 JPEG/PNG/WebP 的声明类型、文件签名、10 MB、边长和总像素上限后写入私有 `MEDIA`，再以乐观锁把主图引用、媒体元数据、修订和审计写入同一 D1 batch。
+- `POST /api/admin/artworks/:id/media/restore`：确认上一对象仍存在后恢复上一张；不提供后台物理删除。
+- `GET/HEAD /api/media/:id`：只提供当前已发布作品的 active 主图，响应固定真实类型、`nosniff` 和不可变缓存头；R2 bucket 不需要公开域名。
 - 管理 API 全部返回 `Cache-Control: no-store`；`held` 不属于管理员直接设置的状态，必须由后续库存锁流程产生。
 - 过期 hold 会在涉及可用性或后台订单列表的请求开始时被清理，作品和订单状态一起恢复；本地阶段不引入额外定时服务。
 
@@ -106,6 +111,16 @@
 - 公开页先显示现有静态内容，再读取 `/api/content`；网络或 API 失败不会把页面清空。服务端文案和履历使用 `textContent` 构建 DOM，避免把管理员输入作为 HTML 执行。
 - 图片上传、支付、真实邮件、真实客户数据和正式生产发布不在本阶段。
 
+## 阶段 5D：作品媒体管理（本地完成）
+
+- 后台只接管作品主图；艺术家肖像与工作室图片仍保持静态，不在本阶段扩大范围。
+- 对象键由作品 ID 和随机 UUID 生成，原文件名只作后台说明，不能影响存储路径。
+- 服务端同时校验 MIME、文件魔数、最大 10 MB、64–12000 像素边长和 6000 万总像素；前端 `accept` 仅作选择提示，不作为安全边界。
+- R2 写入后若 D1 事务失败或版本冲突，只清理本次生成且未提交的新对象；已生效或历史对象不自动删除。
+- 每次替换保留静态路径或上一媒体引用；恢复前确认上一 R2 对象仍存在，避免把公开页切到损坏资源。
+- 作品列表、咨询记录和独立作品页均优先读取服务端主图；API 或新图失败时，页面继续使用原静态图片。
+- 本地真实操作验收完成后，上传对象、修订和审计 fixture 已按精确 ID 清理，17 件作品回到静态基线。Preview/Production R2、图片迁移和云端部署均未执行。
+
 ## 本地开发
 
 1. 执行 `npm install`。
@@ -147,7 +162,8 @@
 - 阶段 2（安全后台写操作）：本地与独立 Preview 纯测试写验收已完成；production 未创建。
 - 阶段 3（下单与议价交互）：咨询、双方报价、hold、释放和取消已在独立 Preview 完整验收。
 - 阶段 3 后续（上线前硬化与咨询转化）：Preview 已设置 `noindex` 和全站爬虫禁止规则；桌面和手机公开页/后台均完成只读交互验收。
-- 阶段 5C（内容管理服务端化）：本地与独立 Preview 验收已完成；图片和 production 未开始。
+- 阶段 5C（内容管理服务端化）：本地与独立 Preview 验收已完成。
+- 阶段 5D（作品媒体管理）：本地实现、上传/公开读取/恢复、桌面/手机验收已完成；Preview/Production R2 尚未创建，现有静态图未迁移或删除。
 
 ## 独立 Cloudflare Preview（2026-08-25）
 

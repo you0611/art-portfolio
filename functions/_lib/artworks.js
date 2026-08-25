@@ -1,18 +1,28 @@
 export const ADMIN_ARTWORK_SELECT = `
   SELECT
-    id, title_zh AS titleZh, title_en AS titleEn, category,
-    medium, dimensions, year, image_url AS image,
-    description_zh AS descriptionZh, description_en AS descriptionEn,
-    detail_path_zh AS detailPathZh, detail_path_en AS detailPathEn,
-    content_status AS contentStatus, sale_status AS saleStatus,
-    price_minor AS priceMinor, currency, price_visibility AS priceVisibility,
-    negotiation_enabled AS negotiationEnabled, display_order AS displayOrder,
-    version, created_at AS createdAt, updated_at AS updatedAt
-  FROM artworks
+    a.id, a.title_zh AS titleZh, a.title_en AS titleEn, a.category,
+    a.medium, a.dimensions, a.year,
+    CASE WHEN m.id IS NULL THEN a.image_url ELSE '/api/media/' || m.id END AS image,
+    a.image_url AS legacyImage,
+    a.description_zh AS descriptionZh, a.description_en AS descriptionEn,
+    a.detail_path_zh AS detailPathZh, a.detail_path_en AS detailPathEn,
+    a.content_status AS contentStatus, a.sale_status AS saleStatus,
+    a.price_minor AS priceMinor, a.currency, a.price_visibility AS priceVisibility,
+    a.negotiation_enabled AS negotiationEnabled, a.display_order AS displayOrder,
+    a.version, a.created_at AS createdAt, a.updated_at AS updatedAt,
+    m.id AS mediaId, m.original_filename AS mediaFilename,
+    m.mime_type AS mediaMimeType, m.byte_size AS mediaByteSize,
+    m.width AS mediaWidth, m.height AS mediaHeight,
+    EXISTS (
+      SELECT 1 FROM artwork_media_revisions r
+      WHERE r.artwork_id = a.id AND r.replacement_media_id = a.primary_media_id
+    ) AS mediaCanRestore
+  FROM artworks a
+  LEFT JOIN media_assets m ON m.id = a.primary_media_id AND m.status = 'active'
 `;
 
-export const ADMIN_ARTWORKS_SQL = `${ADMIN_ARTWORK_SELECT} ORDER BY display_order ASC, id ASC`;
-export const ADMIN_ARTWORK_BY_ID_SQL = `${ADMIN_ARTWORK_SELECT} WHERE id = ?`;
+export const ADMIN_ARTWORKS_SQL = `${ADMIN_ARTWORK_SELECT} ORDER BY a.display_order ASC, a.id ASC`;
+export const ADMIN_ARTWORK_BY_ID_SQL = `${ADMIN_ARTWORK_SELECT} WHERE a.id = ?`;
 
 const PATCH_COLUMNS = Object.freeze({
   titleZh: "title_zh",
@@ -233,6 +243,7 @@ export function mapArtwork(row) {
   return {
     ...row,
     negotiationEnabled: Boolean(row.negotiationEnabled),
+    mediaCanRestore: Boolean(row.mediaCanRestore),
   };
 }
 

@@ -9,7 +9,7 @@
       name="description"
       content="游祥龙艺术工作室管理后台 — 作品管理、艺术家资料、人员与咨询记录维护。"
     />
-    <link rel="stylesheet" href="styles.css?v=20260810-redesign" />
+    <link rel="stylesheet" href="styles.css?v=20260825-media" />
   </head>
   <body>
     <header class="site-header">
@@ -106,8 +106,26 @@
             </label>
             <label>
               <span data-i18n="imagePath">图片路径</span>
-              <input id="image" placeholder="/assets/example.jpg" />
+              <input id="image" placeholder="/assets/example.jpg" readonly />
             </label>
+            <section class="media-manager" aria-labelledby="mediaManagerTitle">
+              <div class="media-manager-copy">
+                <h3 id="mediaManagerTitle" data-i18n="mediaManagerTitle">作品主图</h3>
+                <p class="form-note" id="mediaCurrent" data-i18n="mediaLegacyActive">当前使用项目内静态图片。</p>
+                <p class="form-note" data-i18n="mediaUploadHint">JPEG、PNG 或 WebP，最大 10 MB；系统会验证真实类型和图片尺寸。旧图不会删除。</p>
+              </div>
+              <div class="media-manager-preview">
+                <img id="mediaPreview" src="assets/jiangnan-2024.jpg" alt="" />
+              </div>
+              <label class="media-file-field">
+                <span data-i18n="chooseMedia">选择新图片</span>
+                <input id="mediaFile" type="file" accept="image/jpeg,image/png,image/webp" />
+              </label>
+              <div class="form-actions media-actions">
+                <button class="secondary-button" id="uploadMedia" type="button" data-i18n="uploadMedia" disabled>上传并替换</button>
+                <button class="secondary-button" id="restoreMedia" type="button" data-i18n="restoreMedia" disabled>恢复上一张</button>
+              </div>
+            </section>
             <label>
               <span data-i18n="descriptionZh">中文简介</span>
               <textarea id="descriptionZh" rows="3"></textarea>
@@ -296,7 +314,7 @@
       <a href="index.html" data-i18n="footerAdmin">返回首页</a>
     </footer>
 
-    <script src="common.js?v=20260825-content"></script>
-    <script src="admin.js?v=20260825-content"></script>
+    <script src="common.js?v=20260825-media"></script>
+    <script src="admin.js?v=20260825-media"></script>
   </body>
 </html>

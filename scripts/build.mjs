@@ -15,6 +15,7 @@ const rootAssets = [
   "admin.js",
   "app.js",
   "common.js",
+  "work-detail.js",
   "splash.js",
   "styles.css",
   "robots.txt",

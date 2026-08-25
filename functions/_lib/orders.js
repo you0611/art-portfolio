@@ -324,7 +324,9 @@ export const ADMIN_ORDER_SELECT = `
     o.next_follow_up_at AS nextFollowUpAt, o.admin_note AS adminNote,
     o.created_at AS createdAt, o.updated_at AS updatedAt,
     oi.id AS orderItemId, a.id AS artworkId, a.title_zh AS artworkTitleZh,
-    a.title_en AS artworkTitleEn, a.image_url AS artworkImage, a.sale_status AS artworkSaleStatus,
+    a.title_en AS artworkTitleEn,
+    CASE WHEN ma.id IS NULL THEN a.image_url ELSE '/api/media/' || ma.id END AS artworkImage,
+    a.sale_status AS artworkSaleStatus,
     ih.id AS holdId, ih.status AS holdStatus, ih.expires_at AS holdExpiresAt,
     latest.id AS latestOfferId, latest.amount_minor AS latestOfferAmountMinor,
     latest.currency AS latestOfferCurrency, latest.proposed_by AS latestOfferProposedBy,
@@ -333,6 +335,7 @@ export const ADMIN_ORDER_SELECT = `
   FROM orders o
   JOIN order_items oi ON oi.order_id = o.id
   JOIN artworks a ON a.id = oi.artwork_id
+  LEFT JOIN media_assets ma ON ma.id = a.primary_media_id AND ma.status = 'active'
   LEFT JOIN inventory_holds ih ON ih.order_id = o.id AND ih.status = 'active'
   LEFT JOIN offers latest ON latest.id = (
     SELECT id FROM offers WHERE order_item_id = oi.id ORDER BY created_at DESC, id DESC LIMIT 1
