@@ -54,6 +54,10 @@
 - `POST /api/admin/orders/:id/hold`：管理员明确接受一份待处理报价并创建限时库存 hold；作品改为 `held`、报价接受、订单变为 `awaiting_payment` 处于同一 D1 batch。
 - `POST /api/admin/orders/:id/release-hold`：释放 hold，作品回到 `available`，订单回到 `negotiating`。
 - `GET/POST /api/admin/notifications`：查看邮件出站记录或执行配置的邮件投递；默认不调用外部服务，`EMAIL_MODE=gmail` 时才调用 Gmail API。
+- `GET /api/content`：公开读取艺术家资料、首页/联系文案与已发布履历/动态；浏览器每次重新验证，API 失败时前端继续使用静态内容。
+- `GET /api/admin/content`、`PATCH /api/admin/content/profile`：读取和编辑固定白名单资料字段，要求当前 `version`。
+- `POST /api/admin/content/entries`、`PATCH /api/admin/content/entries/:id`：新建或编辑履历、活动、人物和合作条目；内容只允许草稿、发布、归档，不提供物理删除。
+- `POST /api/admin/content/profile/restore`、`POST /api/admin/content/entries/:id/restore`：恢复上一版，同时把恢复前状态写入修订记录，便于再次回退。
 - 管理 API 全部返回 `Cache-Control: no-store`；`held` 不属于管理员直接设置的状态，必须由后续库存锁流程产生。
 - 过期 hold 会在涉及可用性或后台订单列表的请求开始时被清理，作品和订单状态一起恢复；本地阶段不引入额外定时服务。
 
@@ -93,6 +97,15 @@
 - Gmail 适配器与一次性 OAuth 授权脚本已加入本地代码；只有 `EMAIL_MODE=gmail` 且 OAuth 配置完整时才会通过 Gmail API 发送，授权密钥不进入 Git。
 - 当前仍不读取、导入或迁移旧浏览器中的真实咨询记录。
 
+## 阶段 5C：内容管理服务端化
+
+- `0005_stage5_content.sql` 新增固定字段 `site_profiles`、履历/活动/人物/合作 `site_entries` 和 `site_content_revisions`；只迁移网站代码里已有的 1 份艺术家资料与 22 条履历。
+- 旧 `localStorage` 中“站点管理员 / 作品编辑”占位角色不作为人物资料迁移；活动、人物和合作初始均为 0，不创造未经证实的经历。
+- 管理后台“内容资料”和“履历与动态”改为服务端读取与保存，所有写入使用字段白名单、长度/枚举/HTTPS 校验、乐观锁、事务审计和修订快照。
+- 内容不物理删除，只能归档；取消公开后仍可在后台核查。资料与条目均支持恢复上一版。
+- 公开页先显示现有静态内容，再读取 `/api/content`；网络或 API 失败不会把页面清空。服务端文案和履历使用 `textContent` 构建 DOM，避免把管理员输入作为 HTML 执行。
+- 图片上传、支付、真实邮件、真实客户数据和正式生产发布不在本阶段。
+
 ## 本地开发
 
 1. 执行 `npm install`。
@@ -123,6 +136,7 @@
 - 为当前生产 HEAD 新建本阶段专用回退分支/标签。
 - 核对实际管理浏览器中的 `yx-site-v2`；其中如含个人咨询数据，需单独确认迁移白名单。
 - Preview 已用 `.invalid` 邮箱和纯测试身份完成咨询、客户报价、管理员报价、hold、释放和取消；两条已取消 fixture 记录按验收边界保留，未删除或混入真实客户资料。
+- Preview 已完成内容资料保存、公开页即时读取、恢复上一版、履历归档/恢复、审计和手机/桌面布局验收；验收产生的内容修订和审计 fixture 已清理，服务端内容回到迁移基线。
 - 限时 hold 的跨请求行为已经验证；正式 Access 授权身份和生产部署回滚仍待单独验收，不能直接跳到生产。
 - 完成预览验收后，再单独确认生产数据库创建与正式域名切换。
 
@@ -133,15 +147,16 @@
 - 阶段 2（安全后台写操作）：本地与独立 Preview 纯测试写验收已完成；production 未创建。
 - 阶段 3（下单与议价交互）：咨询、双方报价、hold、释放和取消已在独立 Preview 完整验收。
 - 阶段 3 后续（上线前硬化与咨询转化）：Preview 已设置 `noindex` 和全站爬虫禁止规则；桌面和手机公开页/后台均完成只读交互验收。
+- 阶段 5C（内容管理服务端化）：本地与独立 Preview 验收已完成；图片和 production 未开始。
 
 ## 独立 Cloudflare Preview（2026-08-25）
 
 - Pages 项目：`yx-art-studio-preview`；入口：`https://yx-art-studio-preview.pages.dev`。
-- D1：`yx-art-studio-commerce-preview`，仅含 17 件已核对作品（12 件可咨询、5 件已售）；创建时订单、通知事件和邮件出站记录均为 0。
+- D1：`yx-art-studio-commerce-preview`，含 17 件已核对作品（12 件可咨询、5 件已售）、1 份服务端资料与 22 条已发布履历；活动、人物和合作初始为空。
 - Preview 配置：`EMAIL_MODE=local-fake`、`PREVIEW_GATE_ENABLED=true`；`PREVIEW_GATE_PASSWORD` 与 `ADMIN_EMAIL` 由 Pages Secret 提供，不记录值。
 - 未登录页面/API 与错误密码返回 401；成功登录后健康检查和后台会话返回 200。门禁 Cookie 有效期 8 小时，使用 `HttpOnly`、`Secure`、`SameSite=Strict`。
 - Preview 的 `robots.txt` 禁止全站抓取，并附加 `X-Robots-Tag: noindex, nofollow, noarchive`。正式域名、DNS、生产分支和正式 Pages 项目未修改。
-- 旧的无门禁部署 `ccb1f7be-d06c-4f7a-8235-1f9f5f4511e0` 已删除并验证为 404；当前受保护部署为 `c04df963-3aff-4277-b46d-f6410e64e33d`，对应提交 `e369e4d`。
+- 旧的无门禁部署 `ccb1f7be-d06c-4f7a-8235-1f9f5f4511e0` 已删除并验证为 404；当前受保护部署为 `b6b4e1cc-1788-4eae-9f74-2e9cc58c42a9`，对应提交 `61a7366`。
 - 回滚门禁需要重新部署；不得仅关闭 `PREVIEW_GATE_ENABLED` 后继续公开使用。删除 Preview Pages 或 D1 是独立的破坏性操作，必须再次确认精确资源。
 - 阶段 5A（运营能力）：本地和独立 Preview 验收已完成；通知保持 `local-fake`，未发送真实邮件。
 - 阶段 4（支付）：未开始。
