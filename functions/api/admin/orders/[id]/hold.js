@@ -107,7 +107,7 @@ export async function onRequest(context) {
        )`,
     ).bind(auditId, context.data.admin.email, holdId, requestId, details, holdId, input.version + 1);
 
-    const result = await context.env.DB.batch([
+    await context.env.DB.batch([
       insertHold,
       acceptOffer,
       rejectOthers,
@@ -115,14 +115,21 @@ export async function onRequest(context) {
       updateOrder,
       audit,
     ]);
-    if (Number(result?.[0]?.meta?.changes || 0) !== 1 || Number(result?.[4]?.meta?.changes || 0) !== 1) {
+    const order = await loadOrder(context.env.DB, id);
+    const acceptedOffer = order?.offers.find((offer) => offer.id === input.offerId);
+    if (
+      !order
+      || Number(order.version) <= input.version
+      || order.status !== "awaiting_payment"
+      || order.artwork.saleStatus !== "held"
+      || order.activeHold?.id !== holdId
+      || acceptedOffer?.status !== "accepted"
+    ) {
       return adminJson(
         { error: { code: "HOLD_UNAVAILABLE", message: "The offer or artwork is no longer available for a hold." } },
         { status: 409 },
       );
     }
-    const order = await loadOrder(context.env.DB, id);
-    if (!order) return adminServiceUnavailable();
     return adminJson({ order }, { status: 201, headers: { "x-request-id": requestId } });
   } catch (error) {
     return errorResponse(error);

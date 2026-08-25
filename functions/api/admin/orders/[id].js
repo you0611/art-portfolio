@@ -102,15 +102,20 @@ async function patchOrder(context, id) {
      SELECT ?, ?, 'update_order_status', 'order', ?, ?, ?
      WHERE changes() = 1`,
   ).bind(auditId, context.data.admin.email, id, requestId, details);
-  const result = await context.env.DB.batch([update, audit]);
-  if (Number(result?.[0]?.meta?.changes || 0) !== 1) {
+  await context.env.DB.batch([update, audit]);
+  const order = await loadOrder(context.env.DB, id);
+  const persisted = order
+    && Number(order.version) > input.version
+    && (input.status === null || order.status === input.status)
+    && (input.followUpStatus === undefined || order.followUp.status === input.followUpStatus)
+    && (input.nextFollowUpAt === undefined || order.followUp.nextAt === input.nextFollowUpAt)
+    && (input.adminNote === undefined || order.followUp.note === input.adminNote);
+  if (!persisted) {
     return adminJson(
       { error: { code: "VERSION_CONFLICT", message: "Order was modified by another administrator." } },
       { status: 409 },
     );
   }
-  const order = await loadOrder(context.env.DB, id);
-  if (!order) return adminServiceUnavailable();
   return adminJson({ order }, { headers: { "x-request-id": requestId } });
 }
 

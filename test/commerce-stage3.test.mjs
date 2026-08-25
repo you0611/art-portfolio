@@ -183,6 +183,36 @@ test("committed order and offer writes remain successful when batch metadata is 
   ));
   assert.equal(adminOffer.status, 201);
   assert.equal(db.database.prepare("SELECT COUNT(*) AS count FROM offers").get().count, 2);
+
+  const adminOfferBody = await adminOffer.json();
+  const offerId = adminOfferBody.order.offers.find((offer) => offer.proposedBy === "admin").id;
+  const hold = await onAdminHold(adminContext(
+    jsonRequest(`/api/admin/orders/${orderRow.id}/hold`, "POST", {
+      version: 3,
+      offerId,
+      durationMinutes: 60,
+    }),
+    db,
+    orderRow.id,
+  ));
+  assert.equal(hold.status, 201);
+  assert.equal((await hold.json()).order.status, "awaiting_payment");
+
+  const release = await onAdminReleaseHold(adminContext(
+    jsonRequest(`/api/admin/orders/${orderRow.id}/release-hold`, "POST", { version: 4 }),
+    db,
+    orderRow.id,
+  ));
+  assert.equal(release.status, 200);
+  assert.equal((await release.json()).order.status, "negotiating");
+
+  const cancel = await onAdminOrder(adminContext(
+    jsonRequest(`/api/admin/orders/${orderRow.id}`, "PATCH", { version: 5, status: "cancelled" }),
+    db,
+    orderRow.id,
+  ));
+  assert.equal(cancel.status, 200);
+  assert.equal((await cancel.json()).order.status, "cancelled");
 });
 
 test("public offer and admin quote move the order through negotiation", async () => {

@@ -86,15 +86,27 @@ export async function onRequest(context) {
        )`,
     ).bind(auditId, context.data.admin.email, existing.holdId, requestId, details, existing.holdId, input.version + 1);
 
-    const result = await context.env.DB.batch([releaseHold, releaseArtwork, updateOrder, audit]);
-    if (Number(result?.[0]?.meta?.changes || 0) !== 1 || Number(result?.[2]?.meta?.changes || 0) !== 1) {
+    await context.env.DB.batch([releaseHold, releaseArtwork, updateOrder, audit]);
+    const [released, order] = await Promise.all([
+      context.env.DB
+        .prepare("SELECT status FROM inventory_holds WHERE id = ? AND order_id = ?")
+        .bind(existing.holdId, id)
+        .first(),
+      loadOrder(context.env.DB, id),
+    ]);
+    if (
+      released?.status !== "released"
+      || !order
+      || Number(order.version) <= input.version
+      || order.status !== "negotiating"
+      || order.artwork.saleStatus !== "available"
+      || order.activeHold !== null
+    ) {
       return adminJson(
         { error: { code: "HOLD_CONFLICT", message: "The inventory hold could not be released." } },
         { status: 409 },
       );
     }
-    const order = await loadOrder(context.env.DB, id);
-    if (!order) return adminServiceUnavailable();
     return adminJson({ order }, { headers: { "x-request-id": requestId } });
   } catch (error) {
     return errorResponse(error);
