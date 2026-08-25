@@ -228,48 +228,58 @@
           </div>
         </div>
 
-        <!-- 艺术家资料 -->
+        <!-- 服务端网站资料 -->
         <div class="admin-panel" id="adminArtist" hidden>
-          <p class="form-note legacy-notice" data-i18n="adminLegacyNotice">旧本地功能 / 本阶段未迁移：内容仍只保存在当前浏览器，不代表跨设备保存。</p>
-          <form class="admin-form" id="artistForm">
-            <label>
-              <span data-i18n="artistNameLabel">艺术家姓名</span>
-              <input id="artistNameInput" />
-            </label>
-            <label>
-              <span data-i18n="artistBioZh">中文简介</span>
-              <textarea id="artistBioZh" rows="4"></textarea>
-            </label>
-            <label>
-              <span data-i18n="artistBioEn">英文简介</span>
-              <textarea id="artistBioEn" rows="4"></textarea>
-            </label>
-            <label>
-              <span data-i18n="portraitUpload">上传肖像</span>
-              <input id="portraitUpload" type="file" accept="image/*" />
-            </label>
+          <form class="admin-form content-profile-form" id="artistForm">
+            <input id="contentProfileVersion" type="hidden" />
+            <div class="content-form-heading">
+              <h2 data-i18n="contentProfileTitle">核心文案</h2>
+              <p class="form-note" data-i18n="contentProfileHint">修改会同步到公开页面；每次保存都会保留上一版，可立即恢复。</p>
+            </div>
+            <fieldset class="content-fieldset">
+              <legend data-i18n="profileArtistSection">艺术家资料</legend>
+              <div class="content-pair"><label><span>中文姓名</span><input id="artistNameZh" maxlength="120" required /></label><label><span>English name</span><input id="artistNameEn" maxlength="120" required /></label></div>
+              <div class="content-pair"><label><span data-i18n="artistBioZh">中文简介</span><textarea id="artistBioZh" rows="5" maxlength="5000" required></textarea></label><label><span data-i18n="artistBioEn">英文简介</span><textarea id="artistBioEn" rows="5" maxlength="5000" required></textarea></label></div>
+              <div class="content-pair"><label><span>中文艺术陈述</span><textarea id="artistStatementZh" rows="3" maxlength="1000" required></textarea></label><label><span>Artist statement</span><textarea id="artistStatementEn" rows="3" maxlength="1000" required></textarea></label></div>
+            </fieldset>
+            <fieldset class="content-fieldset">
+              <legend data-i18n="profileHeroSection">首页说明</legend>
+              <div class="content-pair"><label><span>中文首页标题</span><input id="heroTitleZh" maxlength="120" required /></label><label><span>Homepage title</span><input id="heroTitleEn" maxlength="120" required /></label></div>
+              <div class="content-pair"><label><span>中文首页说明</span><textarea id="heroTextZh" rows="3" maxlength="1000" required></textarea></label><label><span>Homepage introduction</span><textarea id="heroTextEn" rows="3" maxlength="1000" required></textarea></label></div>
+              <div class="content-pair"><label><span>中文身份摘要</span><textarea id="heroRecordZh" rows="2" maxlength="500" required></textarea></label><label><span>English record</span><textarea id="heroRecordEn" rows="2" maxlength="500" required></textarea></label></div>
+            </fieldset>
+            <fieldset class="content-fieldset">
+              <legend data-i18n="profileContactSection">咨询与联系文案</legend>
+              <div class="content-pair"><label><span>中文咨询说明</span><textarea id="contactTextZh" rows="3" maxlength="2000" required></textarea></label><label><span>Inquiry introduction</span><textarea id="contactTextEn" rows="3" maxlength="2000" required></textarea></label></div>
+              <div class="content-pair"><label><span>中文咨询流程</span><textarea id="contactProcessZh" rows="3" maxlength="2000" required></textarea></label><label><span>Inquiry process</span><textarea id="contactProcessEn" rows="3" maxlength="2000" required></textarea></label></div>
+              <div class="content-pair"><label><span>中文联系说明</span><textarea id="contactInfoTextZh" rows="2" maxlength="1000" required></textarea></label><label><span>Contact introduction</span><textarea id="contactInfoTextEn" rows="2" maxlength="1000" required></textarea></label></div>
+            </fieldset>
+            <fieldset class="content-fieldset">
+              <legend data-i18n="profileActivitySection">活动页说明</legend>
+              <div class="content-pair"><label><span>中文活动说明</span><textarea id="activityIntroZh" rows="2" maxlength="1000" required></textarea></label><label><span>Activity introduction</span><textarea id="activityIntroEn" rows="2" maxlength="1000" required></textarea></label></div>
+            </fieldset>
             <div class="form-actions">
               <button class="primary-button" type="submit" data-i18n="saveArtist">保存艺术家资料</button>
+              <button class="secondary-button" id="restoreContentProfile" type="button" data-i18n="restorePrevious" disabled>恢复上一版</button>
             </div>
           </form>
-          <div></div>
+          <aside class="content-safety-note"><strong>安全边界</strong><p>这里只维护固定文字字段。图片、支付、客户资料和真实邮件不在本阶段。</p></aside>
         </div>
 
-        <!-- 人员管理 -->
+        <!-- 履历与动态 -->
         <div class="admin-panel" id="adminPeople" hidden>
-          <p class="form-note legacy-notice" data-i18n="adminLegacyNotice">旧本地功能 / 本阶段未迁移：内容仍只保存在当前浏览器，不代表跨设备保存。</p>
-          <form class="admin-form compact-form" id="peopleForm">
-            <label>
-              <span data-i18n="personName">人员姓名</span>
-              <input id="personName" />
-            </label>
-            <label>
-              <span data-i18n="personRole">角色</span>
-              <select id="personRole"></select>
-            </label>
-            <button class="primary-button" type="submit" data-i18n="addPerson">添加人员</button>
+          <form class="admin-form content-entry-form" id="peopleForm">
+            <input id="contentEntryId" type="hidden" />
+            <input id="contentEntryVersion" type="hidden" />
+            <div class="content-form-heading"><h2 data-i18n="entryManagerTitle">履历与动态</h2><p class="form-note" data-i18n="entryManagerHint">现有履历来自网站代码；活动、人物和合作资料须有可靠来源后再发布。归档内容不会公开，但仍可核查。</p></div>
+            <div class="content-pair"><label><span data-i18n="entryKind">内容类型</span><select id="contentEntryKind" required></select></label><label><span data-i18n="yearLabel">年份 / 日期</span><input id="contentYearLabel" maxlength="40" /></label></div>
+            <div class="content-pair"><label><span data-i18n="entryTitleZh">中文标题（履历可留空）</span><input id="contentTitleZh" maxlength="300" /></label><label><span data-i18n="entryTitleEn">英文标题（履历可留空）</span><input id="contentTitleEn" maxlength="300" /></label></div>
+            <div class="content-pair"><label><span data-i18n="entryBodyZh">中文内容</span><textarea id="contentBodyZh" rows="4" maxlength="5000" required></textarea></label><label><span data-i18n="entryBodyEn">英文内容</span><textarea id="contentBodyEn" rows="4" maxlength="5000" required></textarea></label></div>
+            <label><span data-i18n="sourceUrl">来源链接（可选，仅 HTTPS）</span><input id="contentSourceUrl" type="url" inputmode="url" maxlength="1000" placeholder="https://" /></label>
+            <div class="content-pair"><label><span data-i18n="contentStatus">展示状态</span><select id="contentEntryStatus"></select></label><label><span data-i18n="displayOrder">显示顺序</span><input id="contentDisplayOrder" type="number" min="0" max="100000" value="100" required /></label></div>
+            <div class="form-actions"><button class="primary-button" type="submit" data-i18n="saveEntry">保存条目</button><button class="secondary-button" id="newContentEntry" type="button" data-i18n="newEntry">新建条目</button><button class="secondary-button" id="restoreContentEntry" type="button" data-i18n="restorePrevious" disabled>恢复上一版</button></div>
           </form>
-          <div class="admin-list" id="peopleList"></div>
+          <div class="admin-list content-entry-list" id="peopleList"></div>
         </div>
 
         <!-- 咨询记录 -->
@@ -286,7 +296,7 @@
       <a href="index.html" data-i18n="footerAdmin">返回首页</a>
     </footer>
 
-    <script src="common.js?v=20260823-commerce-phase3"></script>
-    <script src="admin.js?v=20260823-commerce-phase3"></script>
+    <script src="common.js?v=20260825-content"></script>
+    <script src="admin.js?v=20260825-content"></script>
   </body>
 </html>

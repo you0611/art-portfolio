@@ -1,5 +1,5 @@
-// ===== admin.js - server-backed artwork management =====
-// Artist, people, and inquiry panels intentionally remain legacy local features.
+// ===== admin.js - server-backed artwork and site-content management =====
+// Only the old browser-local inquiry archive remains a legacy feature.
 
 let adminWorks = [];
 let adminOrders = [];
@@ -7,8 +7,17 @@ let adminEmails = [];
 let emailMode = "local-fake";
 let emailOutboxError = "";
 let selectedOrderId = "";
-let selectedPortraitData = "";
+let adminContentProfile = null;
+let adminContentEntries = [];
+let selectedContentEntryId = "";
 const REQUEST_TIMEOUT_MS = 15000;
+const PROFILE_FORM_FIELDS = [
+  "artistNameZh", "artistNameEn", "artistBioZh", "artistBioEn",
+  "artistStatementZh", "artistStatementEn", "heroTitleZh", "heroTitleEn",
+  "heroTextZh", "heroTextEn", "heroRecordZh", "heroRecordEn",
+  "contactTextZh", "contactTextEn", "contactProcessZh", "contactProcessEn",
+  "contactInfoTextZh", "contactInfoTextEn", "activityIntroZh", "activityIntroEn",
+];
 
 function setAdminStatus(message, isError = false) {
   const node = byId("adminStatus");
@@ -67,8 +76,13 @@ function renderStatusOptions() {
   byId("contentStatus").replaceChildren(
     ...["draft", "published", "archived"].map((value) => new Option(t(value), value)),
   );
-  byId("personRole").replaceChildren(
-    ...["administrator", "editor", "viewer"].map((value) => new Option(t(value), value)),
+  byId("contentEntryKind").replaceChildren(
+    ...["timeline", "activity", "person", "collaboration"].map(
+      (value) => new Option(t(`${value}Entry`), value),
+    ),
+  );
+  byId("contentEntryStatus").replaceChildren(
+    ...["draft", "published", "archived"].map((value) => new Option(t(value), value)),
   );
 }
 
@@ -325,20 +339,35 @@ async function selectAdminOrder(id) {
   }
 }
 
-function renderPeople() {
+function renderContentEntries() {
   const list = byId("peopleList");
   list.replaceChildren();
-  for (const person of state.people) {
+  if (!adminContentEntries.length) {
+    list.append(textElement("div", t("empty"), "empty-state"));
+    return;
+  }
+  for (const entry of adminContentEntries) {
     const item = document.createElement("div");
     item.className = "admin-item";
     const copy = document.createElement("div");
-    copy.append(textElement("h3", person.name), textElement("p", t(person.role)));
+    const title = localText(entry, "titleZh", "titleEn") || localText(entry, "bodyZh", "bodyEn");
+    copy.append(
+      textElement("h3", title),
+      textElement("p", `${t(`${entry.kind}Entry`)} · ${entry.yearLabel || "-"} · ${t(entry.contentStatus)} · v${entry.version}`),
+      textElement("p", localText(entry, "bodyZh", "bodyEn"), "content-entry-summary"),
+    );
     const actions = document.createElement("div");
     actions.className = "item-actions";
-    const remove = textElement("button", t("remove"), "icon-button");
-    remove.type = "button";
-    remove.dataset.removePerson = person.id;
-    actions.append(remove);
+    const edit = textElement("button", t("edit"), "icon-button");
+    edit.type = "button";
+    edit.dataset.editContentEntry = entry.id;
+    actions.append(edit);
+    if (entry.contentStatus !== "archived") {
+      const archive = textElement("button", t("archiveEntry"), "icon-button");
+      archive.type = "button";
+      archive.dataset.archiveContentEntry = entry.id;
+      actions.append(archive);
+    }
     item.append(document.createElement("div"), copy, actions);
     list.append(item);
   }
@@ -366,11 +395,39 @@ function renderInquiries() {
   }
 }
 
-function fillArtistForm() {
-  byId("artistNameInput").value = state.artist.name;
-  byId("artistBioZh").value = state.artist.bioZh;
-  byId("artistBioEn").value = state.artist.bioEn;
-  selectedPortraitData = "";
+function fillContentProfileForm() {
+  if (!adminContentProfile) return;
+  byId("contentProfileVersion").value = adminContentProfile.version;
+  for (const field of PROFILE_FORM_FIELDS) byId(field).value = adminContentProfile[field] || "";
+  byId("restoreContentProfile").disabled = !adminContentProfile.canRestore;
+}
+
+function resetContentEntryForm() {
+  byId("peopleForm").reset();
+  selectedContentEntryId = "";
+  byId("contentEntryId").value = "";
+  byId("contentEntryVersion").value = "";
+  byId("contentEntryStatus").value = "draft";
+  const nextOrder = adminContentEntries.reduce((maximum, entry) => Math.max(maximum, entry.displayOrder || 0), 0) + 1;
+  byId("contentDisplayOrder").value = Math.min(nextOrder, 100000);
+  byId("restoreContentEntry").disabled = true;
+}
+
+function fillContentEntryForm(entry, { scroll = true } = {}) {
+  selectedContentEntryId = entry.id;
+  byId("contentEntryId").value = entry.id;
+  byId("contentEntryVersion").value = entry.version;
+  byId("contentEntryKind").value = entry.kind;
+  byId("contentYearLabel").value = entry.yearLabel;
+  byId("contentTitleZh").value = entry.titleZh;
+  byId("contentTitleEn").value = entry.titleEn;
+  byId("contentBodyZh").value = entry.bodyZh;
+  byId("contentBodyEn").value = entry.bodyEn;
+  byId("contentSourceUrl").value = entry.sourceUrl;
+  byId("contentEntryStatus").value = entry.contentStatus;
+  byId("contentDisplayOrder").value = entry.displayOrder;
+  byId("restoreContentEntry").disabled = !entry.canRestore;
+  if (scroll) byId("peopleForm").scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 function resetWorkForm() {
@@ -444,6 +501,28 @@ async function loadAdminWorks() {
   }
 }
 
+async function loadAdminContent() {
+  setAdminStatus(t("contentLoading"));
+  try {
+    const result = await requestJson("/api/admin/content");
+    adminContentProfile = result.profile || null;
+    adminContentEntries = result.entries || [];
+    if (selectedContentEntryId) {
+      const selected = adminContentEntries.find((entry) => entry.id === selectedContentEntryId);
+      if (selected) fillContentEntryForm(selected);
+      else resetContentEntryForm();
+    }
+    fillContentProfileForm();
+    renderContentEntries();
+    setAdminStatus(t("contentReady"));
+  } catch (error) {
+    adminContentProfile = null;
+    adminContentEntries = [];
+    renderContentEntries();
+    setAdminStatus(requestFailureText(error, "contentLoadFailed"), true);
+  }
+}
+
 async function loadAdminOrders() {
   setAdminStatus(t("ordersLoading"));
   try {
@@ -489,9 +568,9 @@ async function loadEmailOutbox() {
 
 function renderLegacyPanels() {
   applyLanguage();
-  renderPeople();
+  renderContentEntries();
   renderInquiries();
-  fillArtistForm();
+  fillContentProfileForm();
 }
 
 document.querySelectorAll("[data-admin-tab]").forEach((button) => {
@@ -505,6 +584,7 @@ document.querySelectorAll("[data-admin-tab]").forEach((button) => {
       loadAdminOrders();
       loadEmailOutbox();
     }
+    if (["artist", "people"].includes(button.dataset.adminTab)) loadAdminContent();
   });
 });
 
@@ -696,35 +776,127 @@ byId("followUpForm").addEventListener("submit", async (event) => {
   }
 });
 
-byId("artistForm").addEventListener("submit", (event) => {
+byId("artistForm").addEventListener("submit", async (event) => {
   event.preventDefault();
-  state.artist.name = byId("artistNameInput").value.trim() || state.artist.name;
-  state.artist.bioZh = byId("artistBioZh").value.trim();
-  state.artist.bioEn = byId("artistBioEn").value.trim();
-  if (selectedPortraitData) state.artist.portrait = selectedPortraitData;
-  saveState();
-  renderLegacyPanels();
+  if (!adminContentProfile) return;
+  const button = event.target.querySelector('button[type="submit"]');
+  button.disabled = true;
+  const payload = { version: Number(byId("contentProfileVersion").value) };
+  for (const field of PROFILE_FORM_FIELDS) {
+    const value = byId(field).value.trim();
+    if (value !== adminContentProfile[field]) payload[field] = value;
+  }
+  if (Object.keys(payload).length === 1) {
+    button.disabled = false;
+    setAdminStatus(t("contentReady"));
+    return;
+  }
+  try {
+    const result = await requestJson("/api/admin/content/profile", {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    adminContentProfile = { ...result.profile, canRestore: true };
+    fillContentProfileForm();
+    setAdminStatus(t("contentSaved"));
+  } catch (error) {
+    setAdminStatus(error.status === 409 ? t("adminVersionConflict") : requestFailureText(error), true);
+    if (error.status === 409) await loadAdminContent();
+  } finally {
+    button.disabled = false;
+  }
 });
 
-byId("portraitUpload").addEventListener("change", (event) => {
-  readImage(event.target.files[0], (data) => {
-    selectedPortraitData = data;
-  });
-});
-
-byId("peopleForm").addEventListener("submit", (event) => {
+byId("peopleForm").addEventListener("submit", async (event) => {
   event.preventDefault();
-  state.people.push({
-    id: `person-${Date.now()}`,
-    name: byId("personName").value.trim(),
-    role: byId("personRole").value,
-  });
-  saveState();
-  event.target.reset();
-  renderPeople();
+  const button = event.target.querySelector('button[type="submit"]');
+  button.disabled = true;
+  const payload = {
+    kind: byId("contentEntryKind").value,
+    yearLabel: byId("contentYearLabel").value.trim(),
+    titleZh: byId("contentTitleZh").value.trim(),
+    titleEn: byId("contentTitleEn").value.trim(),
+    bodyZh: byId("contentBodyZh").value.trim(),
+    bodyEn: byId("contentBodyEn").value.trim(),
+    sourceUrl: byId("contentSourceUrl").value.trim(),
+    contentStatus: byId("contentEntryStatus").value,
+    displayOrder: Number(byId("contentDisplayOrder").value),
+  };
+  const editing = Boolean(selectedContentEntryId);
+  if (editing) payload.version = Number(byId("contentEntryVersion").value);
+  try {
+    const result = await requestJson(
+      editing ? `/api/admin/content/entries/${encodeURIComponent(selectedContentEntryId)}` : "/api/admin/content/entries",
+      {
+        method: editing ? "PATCH" : "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(payload),
+      },
+    );
+    const entry = { ...result.entry, canRestore: editing };
+    const index = adminContentEntries.findIndex((item) => item.id === entry.id);
+    if (index >= 0) adminContentEntries[index] = entry;
+    else adminContentEntries.push(entry);
+    renderContentEntries();
+    fillContentEntryForm(entry);
+    setAdminStatus(t("contentSaved"));
+  } catch (error) {
+    setAdminStatus(error.status === 409 ? t("adminVersionConflict") : requestFailureText(error), true);
+    if (error.status === 409) await loadAdminContent();
+  } finally {
+    button.disabled = false;
+  }
 });
 
-document.addEventListener("click", (event) => {
+byId("newContentEntry").addEventListener("click", resetContentEntryForm);
+
+byId("restoreContentProfile").addEventListener("click", async () => {
+  if (!adminContentProfile?.canRestore) return;
+  const button = byId("restoreContentProfile");
+  button.disabled = true;
+  try {
+    const result = await requestJson("/api/admin/content/profile/restore", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ version: adminContentProfile.version }),
+    });
+    adminContentProfile = { ...result.profile, canRestore: true };
+    fillContentProfileForm();
+    setAdminStatus(t("contentRestored"));
+  } catch (error) {
+    setAdminStatus(error.status === 409 ? t("adminVersionConflict") : requestFailureText(error), true);
+    if (error.status === 409) await loadAdminContent();
+  } finally {
+    button.disabled = !adminContentProfile?.canRestore;
+  }
+});
+
+byId("restoreContentEntry").addEventListener("click", async () => {
+  const entry = adminContentEntries.find((item) => item.id === selectedContentEntryId);
+  if (!entry?.canRestore) return;
+  const button = byId("restoreContentEntry");
+  button.disabled = true;
+  try {
+    const result = await requestJson(`/api/admin/content/entries/${encodeURIComponent(entry.id)}/restore`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ version: entry.version }),
+    });
+    const restored = { ...result.entry, canRestore: true };
+    adminContentEntries[adminContentEntries.findIndex((item) => item.id === restored.id)] = restored;
+    renderContentEntries();
+    fillContentEntryForm(restored);
+    setAdminStatus(t("contentRestored"));
+  } catch (error) {
+    setAdminStatus(error.status === 409 ? t("adminVersionConflict") : requestFailureText(error), true);
+    if (error.status === 409) await loadAdminContent();
+  } finally {
+    button.disabled = false;
+  }
+});
+
+document.addEventListener("click", async (event) => {
   const editButton = event.target.closest("[data-edit-work]");
   if (editButton) {
     const work = adminWorks.find((item) => item.id === editButton.dataset.editWork);
@@ -734,11 +906,32 @@ document.addEventListener("click", (event) => {
   if (selectOrderButton) {
     selectAdminOrder(selectOrderButton.dataset.selectOrder);
   }
-  const removePerson = event.target.closest("[data-remove-person]");
-  if (removePerson) {
-    state.people = state.people.filter((person) => person.id !== removePerson.dataset.removePerson);
-    saveState();
-    renderPeople();
+  const editContentEntry = event.target.closest("[data-edit-content-entry]");
+  if (editContentEntry) {
+    const entry = adminContentEntries.find((item) => item.id === editContentEntry.dataset.editContentEntry);
+    if (entry) fillContentEntryForm(entry);
+  }
+  const archiveContentEntry = event.target.closest("[data-archive-content-entry]");
+  if (archiveContentEntry) {
+    const entry = adminContentEntries.find((item) => item.id === archiveContentEntry.dataset.archiveContentEntry);
+    if (!entry || entry.contentStatus === "archived") return;
+    archiveContentEntry.disabled = true;
+    try {
+      const result = await requestJson(`/api/admin/content/entries/${encodeURIComponent(entry.id)}`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ version: entry.version, contentStatus: "archived" }),
+      });
+      const archived = { ...result.entry, canRestore: true };
+      adminContentEntries[adminContentEntries.findIndex((item) => item.id === archived.id)] = archived;
+      renderContentEntries();
+      if (selectedContentEntryId === archived.id) fillContentEntryForm(archived);
+      setAdminStatus(t("contentSaved"));
+    } catch (error) {
+      setAdminStatus(error.status === 409 ? t("adminVersionConflict") : requestFailureText(error), true);
+      if (error.status === 409) await loadAdminContent();
+      else archiveContentEntry.disabled = false;
+    }
   }
 });
 
@@ -750,6 +943,10 @@ byId("languageToggle").addEventListener("click", () => {
   renderAdminWorks();
   renderAdminOrders();
   renderEmailOutbox();
+  renderContentEntries();
+  fillContentProfileForm();
+  const selectedEntry = adminContentEntries.find((entry) => entry.id === selectedContentEntryId);
+  if (selectedEntry) fillContentEntryForm(selectedEntry, { scroll: false });
 });
 
 byId("menuToggle").addEventListener("click", () => {
@@ -759,5 +956,6 @@ byId("menuToggle").addEventListener("click", () => {
 applyLanguage();
 renderStatusOptions();
 renderLegacyPanels();
+resetContentEntryForm();
 loadAdminWorks();
 renderEmailOutbox();

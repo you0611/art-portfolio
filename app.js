@@ -68,18 +68,22 @@ function renderDetail(workId) {
 function renderArtist() {
   document.querySelector(".artist-portrait img").src = state.artist.portrait;
   document.querySelector(".artist-portrait img").alt = state.artist.name;
-  document.querySelector('[data-i18n="artistName"]').textContent = state.language === "zh" ? state.artist.name : "You Xianglong";
+  document.querySelector('[data-i18n="artistName"]').textContent = state.language === "zh" ? state.artist.name : state.artist.nameEn;
   document.querySelector('[data-i18n="artistBio"]').textContent =
     state.language === "zh" ? state.artist.bioZh : state.artist.bioEn;
-  byId("timeline").innerHTML = state.timeline
-    .map(
-      (item) => `
-      <div class="timeline-item">
-        <div class="timeline-year">${item.year}</div>
-        <div>${state.language === "zh" ? item.zh : item.en}</div>
-      </div>`
-    )
-    .join("");
+  const timeline = byId("timeline");
+  timeline.replaceChildren();
+  for (const item of state.timeline) {
+    const row = document.createElement("div");
+    row.className = "timeline-item";
+    const year = document.createElement("div");
+    year.className = "timeline-year";
+    year.textContent = item.year;
+    const body = document.createElement("div");
+    body.textContent = localText(item, "zh", "en");
+    row.append(year, body);
+    timeline.append(row);
+  }
 }
 
 function renderInquirySelect() {
@@ -257,6 +261,13 @@ byId("adminEntry").addEventListener("click", (e) => {
 renderAll();
 goToSlide(0);
 startSlideshow();
+
+loadPublicContent().then((loaded) => {
+  if (!loaded) return;
+  renderAll();
+  if (currentDetailId) renderDetail(currentDetailId);
+  goToSlide(heroIndex);
+});
 
 const requestedWorkId = new URLSearchParams(location.search).get("work");
 if (requestedWorkId) renderDetail(requestedWorkId);

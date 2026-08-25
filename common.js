@@ -44,8 +44,8 @@ const translations = {
     adminKicker: "Management",
     adminTitle: "网站管理",
     tabWorks: "作品管理",
-    tabArtist: "艺术家资料",
-    tabPeople: "人员",
+    tabArtist: "内容资料",
+    tabPeople: "履历与动态",
     tabInquiries: "咨询记录",
     tabOrders: "商务咨询",
     titleZh: "中文标题",
@@ -171,6 +171,36 @@ const translations = {
     adminLoading: "正在读取服务端作品…",
     adminReady: "服务端作品已加载。",
     adminSaved: "作品已保存到服务端。",
+    contentLoading: "正在读取网站内容…",
+    contentReady: "网站内容已加载。",
+    contentSaved: "网站内容已保存到服务端。",
+    contentRestored: "已恢复上一版内容。",
+    contentLoadFailed: "网站内容读取失败，请重试。",
+    contentProfileTitle: "核心文案",
+    contentProfileHint: "修改会同步到公开页面；每次保存都会保留上一版，可立即恢复。",
+    restorePrevious: "恢复上一版",
+    entryManagerTitle: "履历与动态",
+    entryManagerHint: "现有履历来自网站代码；活动、人物和合作资料须有可靠来源后再发布。归档内容不会公开，但仍可核查。",
+    entryKind: "内容类型",
+    timelineEntry: "展览履历",
+    activityEntry: "活动资讯",
+    personEntry: "人物资料",
+    collaborationEntry: "合作资料",
+    yearLabel: "年份 / 日期",
+    entryTitleZh: "中文标题（履历可留空）",
+    entryTitleEn: "英文标题（履历可留空）",
+    entryBodyZh: "中文内容",
+    entryBodyEn: "英文内容",
+    sourceUrl: "来源链接（可选，仅 HTTPS）",
+    displayOrder: "显示顺序",
+    saveEntry: "保存条目",
+    newEntry: "新建条目",
+    archiveEntry: "归档",
+    sourceLink: "查看来源",
+    profileHeroSection: "首页说明",
+    profileArtistSection: "艺术家资料",
+    profileContactSection: "咨询与联系文案",
+    profileActivitySection: "活动页说明",
     adminWorkEditOnly: "本阶段只支持编辑已有作品；新增作品留待后续阶段。",
     adminLegacyNotice: "旧本地功能 / 本阶段未迁移：内容仍只保存在当前浏览器，不代表跨设备保存。",
     adminAccessUnavailable: "后台身份验证或服务端暂不可用，请确认已通过 Cloudflare Access。",
@@ -236,8 +266,8 @@ const translations = {
     adminKicker: "Management",
     adminTitle: "Site Admin",
     tabWorks: "Works",
-    tabArtist: "Artist",
-    tabPeople: "People",
+    tabArtist: "Site content",
+    tabPeople: "Records & updates",
     tabInquiries: "Inquiries",
     tabOrders: "Business inquiries",
     titleZh: "Chinese title",
@@ -363,6 +393,36 @@ const translations = {
     adminLoading: "Loading works from the server…",
     adminReady: "Server works loaded.",
     adminSaved: "Work saved to the server.",
+    contentLoading: "Loading site content…",
+    contentReady: "Site content loaded.",
+    contentSaved: "Site content saved to the server.",
+    contentRestored: "The previous version has been restored.",
+    contentLoadFailed: "Site content could not be loaded. Please retry.",
+    contentProfileTitle: "Core copy",
+    contentProfileHint: "Changes appear on public pages. Every save keeps the prior version for immediate restore.",
+    restorePrevious: "Restore previous version",
+    entryManagerTitle: "Records & updates",
+    entryManagerHint: "Existing records come from the site source. Publish activities, people, or collaborations only after checking a reliable source. Archived entries remain inspectable.",
+    entryKind: "Content type",
+    timelineEntry: "Exhibition record",
+    activityEntry: "News & event",
+    personEntry: "Person profile",
+    collaborationEntry: "Collaboration",
+    yearLabel: "Year / date",
+    entryTitleZh: "Chinese title (optional for records)",
+    entryTitleEn: "English title (optional for records)",
+    entryBodyZh: "Chinese content",
+    entryBodyEn: "English content",
+    sourceUrl: "Source link (optional, HTTPS only)",
+    displayOrder: "Display order",
+    saveEntry: "Save entry",
+    newEntry: "New entry",
+    archiveEntry: "Archive",
+    sourceLink: "View source",
+    profileHeroSection: "Homepage copy",
+    profileArtistSection: "Artist profile",
+    profileContactSection: "Inquiry & contact copy",
+    profileActivitySection: "Activity page copy",
     adminWorkEditOnly: "This phase edits existing works only; creating new works comes later.",
     adminLegacyNotice: "Legacy local feature / not migrated in this phase: data stays in this browser and is not cross-device storage.",
     adminAccessUnavailable: "Admin authentication or the server is unavailable. Confirm Cloudflare Access is authorized.",
@@ -391,6 +451,7 @@ const starterState = {
   language: "zh",
   artist: {
     name: "游祥龙",
+    nameEn: "You Xianglong",
     portrait: asset("artist-portrait.jpg"),
     bioZh:
       "中国美术家协会会员，中国民族画院聘用画家、研究员，广东省美术家协会会员。作品曾在国展中屡次获奖，并被贵州美术馆、江苏美术馆、北京民族文化宫、尹山湖美术馆、大芬美术馆、李自健美术馆等收藏。作品《踩芦笙》2020年获百家金陵收藏奖，《江南行》作为江苏交通版权卡出版发行。",
@@ -563,6 +624,7 @@ const starterState = {
     { id: "p-admin", name: "站点管理员", role: "administrator" },
     { id: "p-editor", name: "作品编辑", role: "editor" },
   ],
+  contentEntries: [],
   inquiries: [],
 };
 
@@ -613,6 +675,60 @@ function applyLanguage() {
 
 function visibleWorks() {
   return state.works.filter((work) => work.status !== "private" && work.status !== "draft");
+}
+
+const PROFILE_TRANSLATION_FIELDS = {
+  artistName: ["artistNameZh", "artistNameEn"],
+  artistBio: ["artistBioZh", "artistBioEn"],
+  artistStatement: ["artistStatementZh", "artistStatementEn"],
+  heroTitle: ["heroTitleZh", "heroTitleEn"],
+  heroText: ["heroTextZh", "heroTextEn"],
+  heroRecord: ["heroRecordZh", "heroRecordEn"],
+  contactText: ["contactTextZh", "contactTextEn"],
+  contactProcess: ["contactProcessZh", "contactProcessEn"],
+  contactInfoText: ["contactInfoTextZh", "contactInfoTextEn"],
+  activityIntro: ["activityIntroZh", "activityIntroEn"],
+};
+
+function applyServerContent(payload) {
+  if (!payload?.profile || !Array.isArray(payload.entries)) return false;
+  for (const [key, [zhField, enField]] of Object.entries(PROFILE_TRANSLATION_FIELDS)) {
+    const zhValue = payload.profile[zhField];
+    const enValue = payload.profile[enField];
+    if (typeof zhValue !== "string" || typeof enValue !== "string") return false;
+    translations.zh[key] = zhValue;
+    translations.en[key] = enValue;
+  }
+  state.artist = {
+    ...state.artist,
+    name: payload.profile.artistNameZh,
+    nameEn: payload.profile.artistNameEn,
+    bioZh: payload.profile.artistBioZh,
+    bioEn: payload.profile.artistBioEn,
+  };
+  state.timeline = payload.entries
+    .filter((entry) => entry.kind === "timeline")
+    .map((entry) => ({ year: entry.yearLabel, zh: entry.bodyZh, en: entry.bodyEn }));
+  state.contentEntries = payload.entries.filter((entry) => entry.kind !== "timeline");
+  return true;
+}
+
+async function loadPublicContent() {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 8000);
+  try {
+    const response = await fetch("/api/content", {
+      headers: { accept: "application/json" },
+      cache: "no-cache",
+      signal: controller.signal,
+    });
+    if (!response.ok) return false;
+    return applyServerContent(await response.json());
+  } catch {
+    return false;
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 const STATIC_DETAIL_IDS = new Set([

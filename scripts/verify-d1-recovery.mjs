@@ -77,7 +77,7 @@ try {
     "d1", "execute", database,
     "--local", "--cwd", restoredRoot,
     "--command",
-    "SELECT (SELECT COUNT(*) FROM artworks) AS artworks, (SELECT COUNT(*) FROM orders) AS orders, (SELECT COUNT(*) FROM notification_events) AS events, (SELECT COUNT(*) FROM email_outbox) AS outbox, (SELECT COUNT(*) FROM sqlite_master WHERE type = 'index' AND name = 'one_active_hold_per_artwork_idx') AS hold_index, (SELECT COUNT(*) FROM sqlite_master WHERE type = 'trigger' AND name = 'notification_events_email_outbox') AS outbox_trigger;",
+    "SELECT (SELECT COUNT(*) FROM artworks) AS artworks, (SELECT COUNT(*) FROM orders) AS orders, (SELECT COUNT(*) FROM notification_events) AS events, (SELECT COUNT(*) FROM email_outbox) AS outbox, (SELECT COUNT(*) FROM site_profiles) AS profiles, (SELECT COUNT(*) FROM site_entries) AS content_entries, (SELECT COUNT(*) FROM sqlite_master WHERE type = 'index' AND name = 'one_active_hold_per_artwork_idx') AS hold_index, (SELECT COUNT(*) FROM sqlite_master WHERE type = 'trigger' AND name = 'notification_events_email_outbox') AS outbox_trigger;",
     "--json",
   ]);
   const result = queryResult(stdout);
@@ -86,6 +86,8 @@ try {
     orders: 1,
     events: 1,
     outbox: 1,
+    profiles: 1,
+    content_entries: 22,
     hold_index: 1,
     outbox_trigger: 1,
   });
@@ -97,7 +99,7 @@ try {
     "INSERT INTO orders (id, public_reference, customer_name, customer_email, customer_contact, preferred_language, idempotency_key) VALUES ('fixture-order-duplicate', 'YX-FIXTURE-2', 'Fixture', 'fixture@example.invalid', 'fixture-only', 'zh', 'fixture-idempotency');",
   ], { expectFailure: true });
 
-  console.log("Verified isolated D1 export/restore: 17 artworks, 1 fixture order, notification/outbox triggers, and idempotency constraint.");
+  console.log("Verified isolated D1 export/restore: 17 artworks, 22 content entries, 1 profile, 1 fixture order, notification/outbox triggers, and idempotency constraint.");
 } finally {
   await rm(temporaryRoot, { recursive: true, force: true });
 }

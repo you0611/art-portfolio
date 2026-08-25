@@ -54,13 +54,61 @@
       <a href="gallery.html" data-i18n="backHome">返回主站</a>
     </footer>
 
-    <script src="common.js?v=20260810-redesign"></script>
+    <script src="common.js?v=20260825-content"></script>
     <script>
+      function renderActivityEntries() {
+        const list = document.querySelector(".activity-list");
+        list.replaceChildren();
+        if (!state.contentEntries.length) {
+          const empty = document.createElement("div");
+          empty.className = "activity-empty";
+          const message = document.createElement("span");
+          message.textContent = t("activityEmpty");
+          const contact = document.createElement("a");
+          contact.href = "gallery.html#contactInfo";
+          contact.textContent = t("contactInfoTitle");
+          empty.append(message, contact);
+          list.append(empty);
+          return;
+        }
+        for (const entry of state.contentEntries) {
+          const article = document.createElement("article");
+          article.className = "activity-entry";
+          const meta = document.createElement("div");
+          meta.className = "activity-entry-meta";
+          meta.textContent = [entry.yearLabel, t(`${entry.kind}Entry`)].filter(Boolean).join(" · ");
+          const copy = document.createElement("div");
+          const title = document.createElement("h2");
+          title.textContent = localText(entry, "titleZh", "titleEn");
+          title.hidden = !title.textContent;
+          const body = document.createElement("p");
+          body.textContent = localText(entry, "bodyZh", "bodyEn");
+          copy.append(title, body);
+          if (entry.sourceUrl) {
+            const source = document.createElement("a");
+            source.href = entry.sourceUrl;
+            source.target = "_blank";
+            source.rel = "noreferrer";
+            source.textContent = t("sourceLink");
+            copy.append(source);
+          }
+          article.append(meta, copy);
+          list.append(article);
+        }
+      }
+
       applyLanguage();
+      renderActivityEntries();
+      loadPublicContent().then((loaded) => {
+        if (!loaded) return;
+        applyLanguage();
+        renderActivityEntries();
+      });
       byId("languageToggle").addEventListener("click", () => {
         state.language = state.language === "zh" ? "en" : "zh";
         saveState();
         applyLanguage();
+        renderActivityEntries();
       });
       byId("menuToggle").addEventListener("click", () => {
         document.querySelector(".main-nav").classList.toggle("is-open");
