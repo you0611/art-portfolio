@@ -41,5 +41,5 @@ npx wrangler d1 execute yx-art-studio-commerce --local --file .\private-backup\c
 - [x] Preview 使用独立 D1；不绑定 production D1，不导入真实客户数据。
 - [x] Preview 使用 Pages Functions 服务端密码门禁；密码仅存 Pages Secret，未授权页面/API 均返回 401，正式环境仍要求 Cloudflare Access。
 - [x] Preview 设置 `noindex` 和全站爬虫禁止规则；本地移动端、桌面端、重试、版本冲突和事件记录检查已通过。
-- [ ] 使用纯测试身份完成 Preview 咨询、报价、hold、释放和取消的云端写验收；不得使用真实客户资料。
-- [ ] Preview 通过后单独记录问题与回滚点；不自动修改正式 DNS、生产分支或支付配置。
+- [x] 使用纯测试身份完成 Preview 咨询、双方报价、hold、释放和取消的云端写验收；两条已取消 fixture 记录保留，没有使用真实客户资料或发送真实邮件。
+- [x] 修复远端 D1 已提交但接口误报 409 的成功判定并部署提交 `e369e4d`；当前 Preview 部署为 `c04df963-3aff-4277-b46d-f6410e64e33d`，正式 DNS、生产分支和支付配置未修改。
