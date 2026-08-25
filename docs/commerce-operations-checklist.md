@@ -37,8 +37,9 @@ npx wrangler d1 execute yx-art-studio-commerce --local --file .\private-backup\c
 
 ## Preview 前置验收
 
-- [ ] 阶段 5A 本地测试、构建、迁移和恢复演练全部通过。
-- [ ] Preview 使用独立 D1；不绑定 production D1，不导入真实客户数据。
-- [ ] Preview 后台仅由 Cloudflare Access 保护；未授权请求返回拒绝，不回退到前端密码。
-- [ ] Preview 设置 `noindex`，并完成移动端、桌面端、重试、版本冲突和事件记录检查。
+- [x] 阶段 5A 本地测试、构建、迁移和恢复演练全部通过。
+- [x] Preview 使用独立 D1；不绑定 production D1，不导入真实客户数据。
+- [x] Preview 使用 Pages Functions 服务端密码门禁；密码仅存 Pages Secret，未授权页面/API 均返回 401，正式环境仍要求 Cloudflare Access。
+- [x] Preview 设置 `noindex` 和全站爬虫禁止规则；本地移动端、桌面端、重试、版本冲突和事件记录检查已通过。
+- [ ] 使用纯测试身份完成 Preview 咨询、报价、hold、释放和取消的云端写验收；不得使用真实客户资料。
 - [ ] Preview 通过后单独记录问题与回滚点；不自动修改正式 DNS、生产分支或支付配置。

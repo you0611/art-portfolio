@@ -57,7 +57,7 @@
 - 管理 API 全部返回 `Cache-Control: no-store`；`held` 不属于管理员直接设置的状态，必须由后续库存锁流程产生。
 - 过期 hold 会在涉及可用性或后台订单列表的请求开始时被清理，作品和订单状态一起恢复；本地阶段不引入额外定时服务。
 
-管理员 API 的配置缺失、JWT 缺失、签名/issuer/audience 不合法或邮箱不匹配时均拒绝访问。前端密码不得作为后端认证手段。
+管理员 API 的配置缺失、JWT 缺失、签名/issuer/audience 不合法或邮箱不匹配时均拒绝访问。前端密码不得作为后端认证手段。独立 Cloudflare Preview 例外使用 Pages Functions 服务端门禁：密码只存在 Pages Secret，通过后签发短期 `HttpOnly`、`Secure` Cookie；正式配置不启用这条路径。
 
 ## 阶段 2 本地实现
 
@@ -116,13 +116,13 @@
 
 ## 上线前仍需完成
 
-- 在 Cloudflare 创建独立 preview D1 与 production D1，并把真实 ID 写入对应环境配置。
+- 独立 Preview Pages 与 D1 已创建并完成迁移；production D1 仍未创建。
 - 创建 Cloudflare Access self-hosted application，只允许唯一管理员身份。
-- 在 Pages 预览环境设置 `ACCESS_TEAM_DOMAIN`、`ACCESS_AUD`、`ADMIN_EMAIL`。
+- 正式环境启用前设置 `ACCESS_TEAM_DOMAIN`、`ACCESS_AUD`、`ADMIN_EMAIL`。本次 Preview 因 Zero Trust 免费版激活要求银行卡及超额扣费授权，未开通 Access，改用仅对 Preview 开启的服务端密码门禁。
 - 本地验证可在未提交的 `.dev.vars` 中设置 `LOCAL_ADMIN_PREVIEW=true`；它只对 `localhost`、`127.0.0.1`、`::1` 请求生效，不能绕过非本地环境的 Cloudflare Access。生产和 Cloudflare 预览仍必须配置 Access。
 - 为当前生产 HEAD 新建本阶段专用回退分支/标签。
 - 核对实际管理浏览器中的 `yx-site-v2`；其中如含个人咨询数据，需单独确认迁移白名单。
-- 对阶段 2/3 做 Cloudflare preview D1、Access 和 Pages 预览验收；本地代码已具备版本冲突检查、输入验证和审计边界。
+- 对阶段 2/3 继续做带纯测试数据的 Pages 交互验收；Preview D1、门禁、健康检查和后台会话已验证，尚未提交云端测试咨询。
 - 在 preview 通过后，再检查限时 hold 的跨请求行为、Access 授权身份和部署回滚；仍不能直接跳到生产。
 - 完成预览验收后，再单独确认生产数据库创建与正式域名切换。
 
@@ -130,9 +130,19 @@
 
 - 阶段 0（业务与安全规则）：已确认。
 - 阶段 1（本地后端与数据库基础）：本地实现与验证已完成；远程资源未创建。
-- 阶段 2（安全后台写操作）：本地实现已完成，preview D1 / Access / Pages 远程验收待完成。
-- 阶段 3（下单与议价交互）：本地实现与验证已完成；云端 preview 尚未创建。
-- 阶段 3 后续（上线前硬化与咨询转化）：本地实现与验证已完成；云端 preview 尚未创建。
+- 阶段 2（安全后台写操作）：本地实现已完成；Preview D1、Pages 和密码门禁已完成只读远程验收，写操作待用纯测试数据验收。
+- 阶段 3（下单与议价交互）：本地实现与验证已完成；独立云端 Preview 已创建，交互写验收待完成。
+- 阶段 3 后续（上线前硬化与咨询转化）：本地实现与验证已完成；Preview 已设置 `noindex` 和全站爬虫禁止规则。
+
+## 独立 Cloudflare Preview（2026-08-25）
+
+- Pages 项目：`yx-art-studio-preview`；入口：`https://yx-art-studio-preview.pages.dev`。
+- D1：`yx-art-studio-commerce-preview`，仅含 17 件已核对作品（12 件可咨询、5 件已售）；创建时订单、通知事件和邮件出站记录均为 0。
+- Preview 配置：`EMAIL_MODE=local-fake`、`PREVIEW_GATE_ENABLED=true`；`PREVIEW_GATE_PASSWORD` 与 `ADMIN_EMAIL` 由 Pages Secret 提供，不记录值。
+- 未登录页面/API 与错误密码返回 401；成功登录后健康检查和后台会话返回 200。门禁 Cookie 有效期 8 小时，使用 `HttpOnly`、`Secure`、`SameSite=Strict`。
+- Preview 的 `robots.txt` 禁止全站抓取，并附加 `X-Robots-Tag: noindex, nofollow, noarchive`。正式域名、DNS、生产分支和正式 Pages 项目未修改。
+- 旧的无门禁部署 `ccb1f7be-d06c-4f7a-8235-1f9f5f4511e0` 已删除并验证为 404；当前受保护部署为 `2038cfc8-2b74-4245-8925-dfc5e7f9d163`。
+- 回滚门禁需要重新部署；不得仅关闭 `PREVIEW_GATE_ENABLED` 后继续公开使用。删除 Preview Pages 或 D1 是独立的破坏性操作，必须再次确认精确资源。
 - 阶段 5A（本地运营能力）：已开始；跟进字段、筛选排序和内部事件记录进入本地验收，云端 preview 尚未创建。
 - 阶段 4（支付）：未开始。
 - 阶段 5（生产安全核验与上线）：未开始。

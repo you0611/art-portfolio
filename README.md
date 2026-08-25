@@ -20,7 +20,7 @@
 
 ## 商务后端开发
 
-商务后端正在独立分支中分阶段建设，技术边界为 Cloudflare Pages Functions + D1，后台身份验证使用 Cloudflare Access。阶段 2、阶段 3 及上线前硬化已在本地完成，公共画廊仍未切换到 D1，也没有接入支付、通知或真实客户数据。
+商务后端正在独立分支中分阶段建设，技术边界为 Cloudflare Pages Functions + D1，正式后台的目标身份验证仍是 Cloudflare Access。阶段 2、阶段 3 及上线前硬化已完成本地验证；独立 Cloudflare Preview 使用服务端密码门禁，不接支付、真实通知或真实客户数据。
 
 开发与安全边界详见 `docs/commerce-backend.md`。本地验证入口：
 
@@ -28,6 +28,8 @@
 npm install
 npm run check
 ```
+
+独立 Preview 配置使用 `wrangler.preview.jsonc`，只绑定 `yx-art-studio-commerce-preview`。门禁密码与管理员邮箱是 Cloudflare Pages Secret，不写入仓库；正式 `wrangler.jsonc` 不启用门禁。
 
 ## 图片素材
 

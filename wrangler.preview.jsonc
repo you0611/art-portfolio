@@ -1,0 +1,18 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "yx-art-studio-preview",
+  "compatibility_date": "2026-08-21",
+  "pages_build_output_dir": "./dist",
+  "vars": {
+    "EMAIL_MODE": "local-fake",
+    "PREVIEW_GATE_ENABLED": "true"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "yx-art-studio-commerce-preview",
+      "database_id": "c2bc1732-5151-44a9-91c7-d11b5ce4bc12",
+      "migrations_dir": "migrations"
+    }
+  ]
+}
