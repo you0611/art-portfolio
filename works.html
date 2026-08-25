@@ -5,6 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>全部作品 · 游祥龙艺术工作室</title>
     <meta name="description" content="游祥龙油画作品全集 — 江南系列、人物叙事、民族题材。" />
+    <meta property="og:title" content="全部作品 · 游祥龙艺术工作室" />
+    <meta property="og:description" content="按创作脉络浏览游祥龙的油画作品，并查看尺寸、媒介、年份与收藏状态。" />
+    <meta property="og:image" content="https://youxianglong.com/assets/jiangnan-2024.jpg" />
+    <meta property="og:type" content="website" />
+    <link rel="canonical" href="https://youxianglong.com/works.html" />
     <link rel="stylesheet" href="styles.css?v=20260810-redesign" />
   </head>
   <body class="public-site archive-page">
@@ -13,7 +18,7 @@
         <span class="brand-mark" aria-hidden="true">YX</span>
         <span><strong>游祥龙艺术工作室</strong><small>油画 · 风景 · 人物</small></span>
       </a>
-      <nav class="main-nav" aria-label="Primary navigation">
+      <nav class="main-nav" id="main-navigation" aria-label="Primary navigation">
         <a href="gallery.html#gallery">作品</a>
         <a href="gallery.html#artist">艺术家</a>
         <a href="gallery.html#contact">收藏咨询</a>
@@ -23,7 +28,7 @@
       <div class="header-actions">
         <a class="header-inquiry" href="gallery.html#contact">咨询收藏</a>
         <button class="ghost-button" id="langToggle" type="button">EN</button>
-        <button class="menu-button" id="menuToggle" type="button" aria-label="Menu"><span aria-hidden="true"></span></button>
+        <button class="menu-button" id="menuToggle" type="button" aria-label="Menu" aria-expanded="false" aria-controls="main-navigation"><span aria-hidden="true"></span></button>
       </div>
     </header>
 
@@ -75,7 +80,7 @@
           return `
             <article class="art-card" tabindex="0">
               <a href="${workDetailHref(work.id)}" class="card-link">
-                <figure><img src="${work.image}" alt="${title}" /></figure>
+                <figure><img src="${work.image}" alt="${title}" loading="lazy" decoding="async" /></figure>
                 <div class="art-card-body">
                   <div class="art-card-heading"><span class="art-card-order">${String(index + 1).padStart(2, "0")}</span><span class="badge">${status}</span></div>
                   <h3>${title}</h3>
@@ -95,7 +100,9 @@
       });
 
       document.getElementById("menuToggle").addEventListener("click", () => {
-        document.querySelector(".main-nav").classList.toggle("is-open");
+        const menu = document.querySelector(".main-nav");
+        const isOpen = menu.classList.toggle("is-open");
+        document.getElementById("menuToggle").setAttribute("aria-expanded", String(isOpen));
       });
 
       displayAllWorks();

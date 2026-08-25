@@ -3,8 +3,12 @@
 
 let adminWorks = [];
 let adminOrders = [];
+let adminEmails = [];
+let emailMode = "local-fake";
+let emailOutboxError = "";
 let selectedOrderId = "";
 let selectedPortraitData = "";
+const REQUEST_TIMEOUT_MS = 15000;
 
 function setAdminStatus(message, isError = false) {
   const node = byId("adminStatus");
@@ -15,12 +19,24 @@ function setAdminStatus(message, isError = false) {
 async function requestJson(path, options = {}) {
   const headers = new Headers(options.headers || {});
   headers.set("accept", "application/json");
-  const response = await fetch(path, { ...options, headers, cache: "no-store" });
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  let response;
   let body = null;
   try {
-    body = await response.json();
-  } catch {
-    body = null;
+    response = await fetch(path, { ...options, headers, cache: "no-store", signal: controller.signal });
+    try {
+      body = await response.json();
+    } catch (cause) {
+      if (controller.signal.aborted) throw cause;
+    }
+  } catch (cause) {
+    const timedOut = controller.signal.aborted || cause?.name === "AbortError";
+    const error = new Error(timedOut ? "Request timed out." : "Network unavailable.");
+    error.code = timedOut ? "REQUEST_TIMEOUT" : "NETWORK_UNAVAILABLE";
+    throw error;
+  } finally {
+    clearTimeout(timeout);
   }
   if (!response.ok) {
     const error = new Error(body?.error?.message || "Request failed.");
@@ -29,6 +45,12 @@ async function requestJson(path, options = {}) {
     throw error;
   }
   return body;
+}
+
+function requestFailureText(error, fallbackKey = "adminSaveFailed") {
+  if (error?.code === "REQUEST_TIMEOUT") return t("adminRequestTimeout");
+  if (error?.code === "NETWORK_UNAVAILABLE") return t("adminNetworkUnavailable");
+  return t(fallbackKey);
 }
 
 function textElement(tag, text, className = "") {
@@ -87,26 +109,82 @@ function selectedOrder() {
   return adminOrders.find((order) => order.id === selectedOrderId) || null;
 }
 
+function followUpData(order) {
+  return order.followUp || { status: "unprocessed", nextAt: null, note: "" };
+}
+
+function formatDateTime(value) {
+  if (!value) return "-";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? value : date.toLocaleString();
+}
+
+function toDateTimeInput(value) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  const pad = (number) => String(number).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
+function toIsoOrNull(value) {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) throw new Error("Invalid follow-up time");
+  return date.toISOString();
+}
+
+function filteredAndSortedOrders() {
+  const filter = byId("orderFollowUpFilter").value;
+  const sort = byId("orderSort").value;
+  const orders = adminOrders.filter((order) => filter === "all" || followUpData(order).status === filter);
+  return orders.sort((left, right) => {
+    const leftFollowUp = followUpData(left).nextAt;
+    const rightFollowUp = followUpData(right).nextAt;
+    if (sort === "followUp") {
+      if (!leftFollowUp && !rightFollowUp) return String(right.updatedAt).localeCompare(String(left.updatedAt));
+      if (!leftFollowUp) return 1;
+      if (!rightFollowUp) return -1;
+      return String(leftFollowUp).localeCompare(String(rightFollowUp));
+    }
+    const leftValue = sort === "created" ? left.createdAt : left.updatedAt;
+    const rightValue = sort === "created" ? right.createdAt : right.updatedAt;
+    return String(rightValue).localeCompare(String(leftValue));
+  });
+}
+
+function orderStatusTargets(status) {
+  return {
+    submitted: ["negotiating", "cancelled"],
+    negotiating: ["awaiting_payment", "cancelled"],
+    awaiting_payment: ["cancelled"],
+    cancelled: [],
+  }[status] || [];
+}
+
 function renderOrderTools() {
   const order = selectedOrder();
   const summary = byId("selectedOrderSummary");
   const offerForm = byId("offerForm");
   const holdForm = byId("holdForm");
   const statusForm = byId("orderStatusForm");
+  const followUpForm = byId("followUpForm");
   if (!order) {
     summary.textContent = t("selectOrder");
     offerForm.hidden = true;
     holdForm.hidden = true;
     statusForm.hidden = true;
+    followUpForm.hidden = true;
+    byId("notificationEventList").replaceChildren();
     return;
   }
 
   summary.textContent = `${order.artwork.titleZh} · ${order.customer.name} · ${order.customer.contact} · ${t(order.status)} · v${order.version}`;
   offerForm.hidden = !["submitted", "negotiating"].includes(order.status);
   holdForm.hidden = !["negotiating", "awaiting_payment"].includes(order.status);
-  statusForm.hidden = order.status === "cancelled";
+  statusForm.hidden = false;
 
-  const pendingOffers = order.offers.filter((offer) => offer.status === "pending");
+  const pendingOffers = (order.offers || []).filter((offer) => offer.status === "pending");
   const offerSelect = byId("holdOffer");
   offerSelect.replaceChildren(
     ...pendingOffers.map((offer) => new Option(
@@ -116,9 +194,47 @@ function renderOrderTools() {
   );
   byId("createHold").disabled = !pendingOffers.length || Boolean(order.activeHold);
   byId("releaseHold").disabled = !order.activeHold;
-  byId("orderStatus").value = ["negotiating", "awaiting_payment", "cancelled"].includes(order.status)
-    ? order.status
-    : "negotiating";
+  const statusSelect = byId("orderStatus");
+  const statusButton = statusForm.querySelector('button[type="submit"]');
+  const targets = orderStatusTargets(order.status);
+  statusSelect.replaceChildren();
+  if (targets.length) {
+    const placeholder = new Option(t("selectNextOrderStatus"), "", true, true);
+    placeholder.disabled = true;
+    statusSelect.append(placeholder, ...targets.map((value) => new Option(t(value), value)));
+  } else {
+    const current = new Option(t(order.status), order.status, true, true);
+    current.disabled = true;
+    statusSelect.append(current);
+  }
+  statusSelect.disabled = !targets.length;
+  statusButton.disabled = !targets.length;
+  statusSelect.onchange = () => {
+    statusButton.disabled = !targets.includes(statusSelect.value);
+  };
+  byId("orderStatusNote").textContent = order.status === "cancelled" ? t("cancelledOrderReadonly") : "";
+
+  const followUp = followUpData(order);
+  followUpForm.hidden = false;
+  byId("followUpStatus").value = followUp.status;
+  byId("nextFollowUpAt").value = toDateTimeInput(followUp.nextAt);
+  byId("adminNote").value = followUp.note || "";
+  const eventList = byId("notificationEventList");
+  eventList.replaceChildren();
+  if (!(order.notificationEvents || []).length) {
+    eventList.append(textElement("div", t("noNotificationEvents"), "empty-state"));
+  } else {
+    for (const event of order.notificationEvents) {
+      const item = document.createElement("div");
+      item.className = "admin-item";
+      item.append(
+        document.createElement("div"),
+        textElement("div", `${t(event.eventType)} · ${formatDateTime(event.createdAt)}`),
+        textElement("div", t(event.deliveryStatus === "failed" ? "notificationEventFailed" : "notificationEventRecorded"), "form-note"),
+      );
+      eventList.append(item);
+    }
+  }
 }
 
 function renderAdminOrders() {
@@ -129,7 +245,13 @@ function renderAdminOrders() {
     renderOrderTools();
     return;
   }
-  for (const order of adminOrders) {
+  const orders = filteredAndSortedOrders();
+  if (!orders.length) {
+    list.append(textElement("div", t("noMatchingOrders"), "empty-state"));
+    renderOrderTools();
+    return;
+  }
+  for (const order of orders) {
     const item = document.createElement("div");
     item.className = "admin-item";
     const image = document.createElement("img");
@@ -140,6 +262,7 @@ function renderAdminOrders() {
       textElement("h3", order.artwork.titleZh),
       textElement("p", `${order.customer.name} · ${order.customer.contact}`),
       textElement("p", `${t(order.status)} · v${order.version} · ${order.reference}`, "form-note"),
+      textElement("p", `${t(followUpData(order).status)} · ${formatDateTime(followUpData(order).nextAt)}`),
     );
     if (order.latestOffer) {
       copy.append(textElement(
@@ -159,10 +282,47 @@ function renderAdminOrders() {
   renderOrderTools();
 }
 
+function renderEmailOutbox() {
+  const modeLabel = byId("emailOutboxMode");
+  modeLabel.textContent = t(emailMode === "gmail" ? "gmailEmailOutbox" : "localEmailOutbox");
+  byId("dispatchEmailOutbox").textContent = t(emailMode === "gmail" ? "dispatchEmailOutboxReal" : "dispatchEmailOutbox");
+  const list = byId("emailOutboxList");
+  list.replaceChildren();
+  if (emailOutboxError) {
+    list.append(textElement("div", t(emailOutboxError), "empty-state is-error"));
+    return;
+  }
+  if (!adminEmails.length) {
+    list.append(textElement("div", t("emailOutboxEmpty"), "empty-state"));
+    return;
+  }
+  for (const email of adminEmails) {
+    const item = document.createElement("div");
+    item.className = "admin-item";
+    item.append(
+      document.createElement("div"),
+      textElement("div", `${t(email.recipientKind === "admin" ? "adminRecipient" : "customerRecipient")} · ${t(email.template)}`),
+      textElement("div", `${t(email.status === "sent" && emailMode === "gmail" ? "sentReal" : email.status)} · ${email.attemptCount}`, "form-note"),
+    );
+    list.append(item);
+  }
+}
+
 function syncAdminOrder(order) {
   adminOrders = adminOrders.map((item) => (item.id === order.id ? order : item));
   selectedOrderId = order.id;
   renderAdminOrders();
+}
+
+async function selectAdminOrder(id) {
+  selectedOrderId = id;
+  renderAdminOrders();
+  try {
+    const result = await requestJson(`/api/admin/orders/${encodeURIComponent(id)}`);
+    syncAdminOrder(result.order);
+  } catch (error) {
+    setAdminStatus(requestFailureText(error, "adminAccessUnavailable"), true);
+  }
 }
 
 function renderPeople() {
@@ -277,10 +437,10 @@ async function loadAdminWorks() {
     adminWorks = result.artworks || [];
     renderAdminWorks();
     setAdminStatus(t("adminReady"));
-  } catch {
+  } catch (error) {
     adminWorks = [];
     renderAdminWorks();
-    setAdminStatus(t("adminAccessUnavailable"), true);
+    setAdminStatus(requestFailureText(error, "adminAccessUnavailable"), true);
   }
 }
 
@@ -291,12 +451,39 @@ async function loadAdminOrders() {
     adminOrders = result.orders || [];
     if (selectedOrderId && !adminOrders.some((order) => order.id === selectedOrderId)) selectedOrderId = "";
     renderAdminOrders();
+    if (selectedOrderId) {
+      try {
+        const result = await requestJson(`/api/admin/orders/${encodeURIComponent(selectedOrderId)}`);
+        syncAdminOrder(result.order);
+      } catch (error) {
+        setAdminStatus(requestFailureText(error, "adminAccessUnavailable"), true);
+      }
+    }
     setAdminStatus(t("ordersReady"));
-  } catch {
+  } catch (error) {
     adminOrders = [];
     selectedOrderId = "";
     renderAdminOrders();
-    setAdminStatus(t("adminAccessUnavailable"), true);
+    setAdminStatus(requestFailureText(error, "adminAccessUnavailable"), true);
+  }
+}
+
+async function loadEmailOutbox() {
+  try {
+    const result = await requestJson("/api/admin/notifications");
+    emailMode = result.mode || "local-fake";
+    adminEmails = result.emails || [];
+    emailOutboxError = "";
+    renderEmailOutbox();
+  } catch (error) {
+    adminEmails = [];
+    emailMode = "local-fake";
+    emailOutboxError = error?.code === "REQUEST_TIMEOUT"
+      ? "emailOutboxTimeout"
+      : error?.code === "NETWORK_UNAVAILABLE"
+        ? "emailOutboxNetworkFailed"
+        : "emailOutboxLoadFailed";
+    renderEmailOutbox();
   }
 }
 
@@ -314,7 +501,10 @@ document.querySelectorAll("[data-admin-tab]").forEach((button) => {
     ["Works", "Artist", "People", "Orders", "Inquiries"].forEach((name) => {
       byId(`admin${name}`).hidden = button.dataset.adminTab !== name.toLowerCase();
     });
-    if (button.dataset.adminTab === "orders") loadAdminOrders();
+    if (button.dataset.adminTab === "orders") {
+      loadAdminOrders();
+      loadEmailOutbox();
+    }
   });
 });
 
@@ -341,7 +531,7 @@ byId("workForm").addEventListener("submit", async (event) => {
     if (error.status === 409) {
       setAdminStatus(t("adminVersionConflict"), true);
     } else {
-      setAdminStatus(t("adminSaveFailed"), true);
+      setAdminStatus(requestFailureText(error), true);
     }
   } finally {
     saveButton.disabled = false;
@@ -351,6 +541,28 @@ byId("workForm").addEventListener("submit", async (event) => {
 byId("resetWorkForm").addEventListener("click", resetWorkForm);
 byId("reloadWorks").addEventListener("click", loadAdminWorks);
 byId("reloadOrders").addEventListener("click", loadAdminOrders);
+byId("dispatchEmailOutbox").addEventListener("click", async () => {
+  const button = byId("dispatchEmailOutbox");
+  button.disabled = true;
+  try {
+    const result = await requestJson("/api/admin/notifications", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: "{}",
+    });
+    await loadEmailOutbox();
+    const summary = result.result || {};
+    const resultLabel = emailMode === "gmail" ? t("emailDispatchResultReal") : t("emailDispatchResult");
+    const sentLabel = emailMode === "gmail" ? t("sentReal") : t("sent");
+    setAdminStatus(`${resultLabel} ${summary.sent || 0} ${sentLabel} / ${summary.failed || 0} ${t("failed")} / ${summary.skipped || 0} ${t("skipped")}`);
+  } catch (error) {
+    setAdminStatus(requestFailureText(error), true);
+  } finally {
+    button.disabled = false;
+  }
+});
+byId("orderFollowUpFilter").addEventListener("change", renderAdminOrders);
+byId("orderSort").addEventListener("change", renderAdminOrders);
 
 byId("offerForm").addEventListener("submit", async (event) => {
   event.preventDefault();
@@ -374,7 +586,7 @@ byId("offerForm").addEventListener("submit", async (event) => {
     byId("orderOfferCurrency").value = "CNY";
     setAdminStatus(t("adminSaved"));
   } catch (error) {
-    setAdminStatus(error.status === 409 ? t("adminVersionConflict") : t("adminSaveFailed"), true);
+    setAdminStatus(error.status === 409 ? t("adminVersionConflict") : requestFailureText(error), true);
     if (error.status === 409) await loadAdminOrders();
   } finally {
     button.disabled = false;
@@ -400,7 +612,7 @@ byId("holdForm").addEventListener("submit", async (event) => {
     syncAdminOrder(result.order);
     setAdminStatus(t("adminSaved"));
   } catch (error) {
-    setAdminStatus(error.status === 409 ? t("adminVersionConflict") : t("adminSaveFailed"), true);
+    setAdminStatus(error.status === 409 ? t("adminVersionConflict") : requestFailureText(error), true);
     if (error.status === 409) await loadAdminOrders();
   } finally {
     button.disabled = false;
@@ -421,7 +633,7 @@ byId("releaseHold").addEventListener("click", async () => {
     syncAdminOrder(result.order);
     setAdminStatus(t("adminSaved"));
   } catch (error) {
-    setAdminStatus(error.status === 409 ? t("adminVersionConflict") : t("adminSaveFailed"), true);
+    setAdminStatus(error.status === 409 ? t("adminVersionConflict") : requestFailureText(error), true);
     if (error.status === 409) await loadAdminOrders();
   } finally {
     button.disabled = false;
@@ -443,7 +655,41 @@ byId("orderStatusForm").addEventListener("submit", async (event) => {
     syncAdminOrder(result.order);
     setAdminStatus(t("adminSaved"));
   } catch (error) {
-    setAdminStatus(error.status === 409 ? t("adminVersionConflict") : t("adminSaveFailed"), true);
+    setAdminStatus(
+      error.status === 409
+        ? t("adminVersionConflict")
+        : error.code === "INVALID_ORDER_TRANSITION"
+          ? t("orderStatusInvalid")
+          : requestFailureText(error),
+      true,
+    );
+    if (error.status === 409) await loadAdminOrders();
+  } finally {
+    button.disabled = false;
+  }
+});
+
+byId("followUpForm").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const order = selectedOrder();
+  if (!order) return;
+  const button = event.target.querySelector('button[type="submit"]');
+  button.disabled = true;
+  try {
+    const result = await requestJson(`/api/admin/orders/${encodeURIComponent(order.id)}`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        version: order.version,
+        followUpStatus: byId("followUpStatus").value,
+        nextFollowUpAt: toIsoOrNull(byId("nextFollowUpAt").value),
+        adminNote: byId("adminNote").value.trim(),
+      }),
+    });
+    syncAdminOrder(result.order);
+    setAdminStatus(t("adminSaved"));
+  } catch (error) {
+    setAdminStatus(error.status === 409 ? t("adminVersionConflict") : requestFailureText(error), true);
     if (error.status === 409) await loadAdminOrders();
   } finally {
     button.disabled = false;
@@ -486,8 +732,7 @@ document.addEventListener("click", (event) => {
   }
   const selectOrderButton = event.target.closest("[data-select-order]");
   if (selectOrderButton) {
-    selectedOrderId = selectOrderButton.dataset.selectOrder;
-    renderAdminOrders();
+    selectAdminOrder(selectOrderButton.dataset.selectOrder);
   }
   const removePerson = event.target.closest("[data-remove-person]");
   if (removePerson) {
@@ -503,6 +748,8 @@ byId("languageToggle").addEventListener("click", () => {
   renderStatusOptions();
   renderLegacyPanels();
   renderAdminWorks();
+  renderAdminOrders();
+  renderEmailOutbox();
 });
 
 byId("menuToggle").addEventListener("click", () => {
@@ -513,3 +760,4 @@ applyLanguage();
 renderStatusOptions();
 renderLegacyPanels();
 loadAdminWorks();
+renderEmailOutbox();

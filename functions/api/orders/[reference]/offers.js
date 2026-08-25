@@ -46,7 +46,11 @@ export async function onRequest(context) {
          AND EXISTS (SELECT 1 FROM offers WHERE id = ?)`
     ).bind(reference, offerId);
     const result = await context.env.DB.batch([insert, update]);
-    if (Number(result?.[0]?.meta?.changes || 0) !== 1) {
+    const persistedOffer = await context.env.DB
+      .prepare("SELECT id FROM offers WHERE id = ?")
+      .bind(offerId)
+      .first();
+    if (!persistedOffer) {
       return noStoreJson(
         { error: { code: "ORDER_NOT_OPEN", message: "This inquiry is no longer open for offers." } },
         { status: 409 },

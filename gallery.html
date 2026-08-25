@@ -6,8 +6,13 @@
     <title>游祥龙艺术工作室 | You Xianglong Art Studio</title>
     <meta
       name="description"
-      content="游祥龙艺术工作室官方网站原型，展示油画作品、艺术家履历、作品详情与收藏咨询。"
+      content="游祥龙艺术工作室官方网站，展示油画作品、艺术家履历、作品详情与收藏咨询。"
     />
+    <meta property="og:title" content="游祥龙艺术工作室 | You Xianglong Art Studio" />
+    <meta property="og:description" content="展示游祥龙的油画作品、艺术家履历、作品详情与收藏咨询。" />
+    <meta property="og:image" content="https://youxianglong.com/assets/jiangnan-2024.jpg" />
+    <meta property="og:type" content="website" />
+    <link rel="canonical" href="https://youxianglong.com/gallery.html" />
     <link rel="stylesheet" href="styles.css?v=20260810-redesign" />
   </head>
   <body class="public-site">
@@ -27,7 +32,7 @@
           <small data-i18n="brandSub">油画 · 风景 · 人物</small>
         </span>
       </a>
-      <nav class="main-nav" aria-label="Primary navigation">
+      <nav class="main-nav" id="main-navigation" aria-label="Primary navigation">
         <a href="#artist" data-i18n="navArtist">艺术家</a>
         <a href="#gallery" data-i18n="navGallery">作品</a>
         <a href="#contact" data-i18n="navContact">收藏咨询</a>
@@ -37,14 +42,14 @@
       <div class="header-actions">
         <a class="header-inquiry" href="#contact" data-i18n="inquiry">咨询收藏</a>
         <button class="ghost-button" id="languageToggle" type="button">EN</button>
-        <button class="menu-button" id="menuToggle" type="button" aria-label="Menu"><span aria-hidden="true"></span></button>
+        <button class="menu-button" id="menuToggle" type="button" aria-label="Menu" aria-expanded="false" aria-controls="main-navigation"><span aria-hidden="true"></span></button>
       </div>
     </header>
 
     <main>
       <section class="hero" id="home">
         <div class="hero-stage">
-          <img id="heroImage" src="assets/jiangnan-2024.jpg" alt="油画作品：江南" />
+          <img id="heroImage" src="assets/jiangnan-2024.jpg" alt="油画作品：江南" width="1600" height="1280" fetchpriority="high" decoding="async" />
           <div class="hero-dots" id="heroDots" aria-label="Featured works"></div>
         </div>
         <div class="hero-copy">
@@ -73,7 +78,7 @@
         </div>
         <div class="artist-top">
           <div class="artist-portrait">
-            <img src="assets/artist-portrait.jpg" alt="艺术家游祥龙肖像" />
+            <img src="assets/artist-portrait.jpg" alt="艺术家游祥龙肖像" width="900" height="1200" loading="lazy" decoding="async" />
           </div>
           <div class="artist-copy">
             <p data-i18n="artistBio">
@@ -124,28 +129,29 @@
         <div class="contact-copy">
           <h2 data-i18n="contactTitle">作品收藏咨询</h2>
           <p data-i18n="contactText">
-            你可以留下想咨询的作品、联系方式和备注。当前本地版会把询价记录保存在后台，正式上线后可接入邮箱、微信或表单服务。
+            选择想了解的作品并留下联系方式，工作室会依据作品状态与你进一步沟通。提交后会生成一个咨询编号，记录保存在服务端后台。
           </p>
+          <p class="contact-process" data-i18n="contactProcess">提交后，工作室会先确认作品状态，再与你沟通收藏方式；运输与付款会另行协商。</p>
         </div>
-        <form class="inquiry-form" id="inquiryForm">
+        <form class="inquiry-form" id="inquiryForm" aria-describedby="formNote">
           <label>
             <span data-i18n="formWork">咨询作品</span>
             <select id="inquiryWork"></select>
           </label>
           <label>
             <span data-i18n="formName">姓名</span>
-            <input id="inquiryName" required />
+            <input id="inquiryName" autocomplete="name" maxlength="120" required />
           </label>
           <label>
             <span data-i18n="formContact">联系方式</span>
-            <input id="inquiryContact" required />
+            <input id="inquiryContact" inputmode="tel" maxlength="200" required />
           </label>
           <label>
             <span data-i18n="formMessage">留言</span>
-            <textarea id="inquiryMessage" rows="4"></textarea>
+            <textarea id="inquiryMessage" rows="4" maxlength="2000"></textarea>
           </label>
           <button class="primary-button" type="submit" data-i18n="submitInquiry">提交咨询</button>
-          <p class="form-note" id="formNote" aria-live="polite"></p>
+          <p class="form-note" id="formNote" role="status" aria-live="polite"></p>
         </form>
       </section>
 

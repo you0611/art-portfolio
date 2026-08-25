@@ -6,10 +6,12 @@
   "scripts": {
     "build": "node scripts/build.mjs",
     "dev": "npm run build && wrangler pages dev dist",
+    "gmail:authorize": "node scripts/gmail-oauth.mjs",
     "test": "node --test",
+    "db:recovery:fixture": "node scripts/verify-d1-recovery.mjs",
     "db:migrate:local": "wrangler d1 migrations apply yx-art-studio-commerce --local",
     "db:verify:local": "wrangler d1 execute yx-art-studio-commerce --local --command=\"SELECT content_status, sale_status, COUNT(*) AS count FROM artworks GROUP BY content_status, sale_status ORDER BY sale_status\"",
-    "check": "npm run test && npm run build && npm run db:migrate:local && npm run db:verify:local"
+    "check": "npm run test && npm run build && npm run db:migrate:local && npm run db:verify:local && npm run db:recovery:fixture"
   },
   "dependencies": {
     "jose": "6.2.9"

@@ -7,7 +7,7 @@
 - 收款主体为个体工商户。
 - 包装与运费在议价/订单过程中另行确认。
 - 第一阶段只有一位管理员。
-- 当前阶段不接支付、不发送真实通知、不迁移真实咨询数据、不改正式站前端数据源。
+- 当前阶段不接支付、不迁移真实咨询数据、不改正式站前端数据源；真实邮件只有在 Gmail OAuth 配置完成并明确切换模式后才会投递。
 
 ## 技术选择
 
@@ -22,7 +22,7 @@
 
 ## 数据库边界
 
-迁移 `0001_commerce_foundation.sql` 创建基础表；`0002_stage3_orders.sql` 增加服务端客户联系方式和幂等键：
+迁移 `0001_commerce_foundation.sql` 创建基础表；`0002_stage3_orders.sql` 增加服务端客户联系方式和幂等键；`0003_stage5_followup.sql` 增加本地运营跟进与通知事件记录；`0004_stage5_email_outbox.sql` 增加邮件出站队列：
 
 - `artworks`：作品内容、展示状态、销售状态和议价开关。
 - `orders` / `order_items`：客户订单及对应的单件原创作品。
@@ -31,6 +31,9 @@
 - `admin_audit_log`：后续管理写操作的审计记录。
 - `orders.customer_contact`：客户可填写电话、微信或其他联系方式；不在公共响应中返回。
 - `orders.idempotency_key`：公共咨询重试时避免重复创建订单。
+- `orders.follow_up_status`、`orders.next_follow_up_at`、`orders.admin_note`：独立于交易阶段的跟进状态、下一次跟进时间和管理员备注。
+- `notification_events`：新咨询、新报价和订单阶段变化的内部事件记录；事件本身仍不直接发送外部消息，`failed` 状态及失败信息为投递保留。
+- `email_outbox`：由通知事件触发的邮件出站队列，记录管理员/客户收件人类型、模板、投递状态、尝试次数和失败信息；默认使用本地假发送器，也支持显式切换到 Gmail API。
 
 展示状态与销售状态分离。金额使用整数最小货币单位并附三位币种代码，避免浮点金额。初始 17 件作品均启用议价，现有 12 件为 `available`、5 件为 `sold`。
 
@@ -50,6 +53,7 @@
 - `POST /api/admin/orders/:id/offers`：管理员发送报价，要求当前订单 `version`。
 - `POST /api/admin/orders/:id/hold`：管理员明确接受一份待处理报价并创建限时库存 hold；作品改为 `held`、报价接受、订单变为 `awaiting_payment` 处于同一 D1 batch。
 - `POST /api/admin/orders/:id/release-hold`：释放 hold，作品回到 `available`，订单回到 `negotiating`。
+- `GET/POST /api/admin/notifications`：查看邮件出站记录或执行配置的邮件投递；默认不调用外部服务，`EMAIL_MODE=gmail` 时才调用 Gmail API。
 - 管理 API 全部返回 `Cache-Control: no-store`；`held` 不属于管理员直接设置的状态，必须由后续库存锁流程产生。
 - 过期 hold 会在涉及可用性或后台订单列表的请求开始时被清理，作品和订单状态一起恢复；本地阶段不引入额外定时服务。
 
@@ -72,6 +76,23 @@
 - 阶段 3 测试覆盖咨询幂等、公共响应不含联系方式、议价、hold/释放、过期清理、非法输入、版本冲突和审计失败回滚。
 - 当前所有客户和管理员测试数据均为 fixture；本阶段不接支付、邮件、短信、真实通知或生产数据。
 
+## 阶段 3 后续：上线前硬化与咨询转化
+
+- 公共首页、主画廊、作品总览和活动页补齐分享元数据与 canonical；后台从 sitemap 和爬虫范围中移除。
+- 旧测试页不再进入构建产物；作品图片使用明确的首屏/延迟加载策略，并补充菜单状态、表单状态和空库存处理。
+- 独立作品页的咨询按钮会把当前作品带入收藏咨询表单；提交说明明确运输与付款另行协商，不在本阶段接入支付。
+
+## 阶段 5A：本地运营能力
+
+- 管理后台可以按跟进状态筛选咨询，并按下一次跟进时间、最近更新或创建时间排序。
+- 管理员可以保存“未处理 / 沟通中 / 已完成 / 已取消”、下一次跟进时间和备注；这些字段不改变交易阶段。
+- 数据库触发器为新咨询、新报价和订单阶段变化写入 `notification_events`，避免业务 API 分支遗漏事件；当前只记录，不连接邮件、微信或其他外部账号。
+- 订单详情会显示事件记录及其投递状态；真实通知接入前，`failed` 只能作为内部失败状态保存，不能宣称已经发送。
+- 新咨询会生成管理员邮件出站记录；管理员报价会生成客户邮件出站记录；本地后台默认“模拟投递”只更新 D1 状态，不发送网络请求。
+- 本地假发送已覆盖成功、跳过、失败和重试；真实邮件服务接入仍需单独配置发件域名、API 密钥、队列执行和退信处理。
+- Gmail 适配器与一次性 OAuth 授权脚本已加入本地代码；只有 `EMAIL_MODE=gmail` 且 OAuth 配置完整时才会通过 Gmail API 发送，授权密钥不进入 Git。
+- 当前仍不读取、导入或迁移旧浏览器中的真实咨询记录。
+
 ## 本地开发
 
 1. 执行 `npm install`。
@@ -81,11 +102,24 @@
 5. 如需本地测试管理员 API，可在被 Git 忽略的 `.dev.vars` 设置本地管理员邮箱；Access 域名和 audience 未配置时，管理员 API 必须保持 503 拒绝。不得提交真实值。
 6. 执行 `npm run dev` 启动 Pages 本地预览。
 
+## Gmail 发件配置（本地、显式开启）
+
+当前已确认的发件账号由本地环境变量提供，不写入前端、测试或知识库。管理员收件人仍使用 `ADMIN_EMAIL`；Gmail 发件账号使用 `GMAIL_FROM_EMAIL`。
+
+1. 在 Google Cloud 中启用 Gmail API，创建 OAuth 2.0 Web application 凭据，并把 `http://127.0.0.1:8789/oauth/callback` 加入授权回调地址。
+2. 在被 Git 忽略的 `.dev.vars` 中填写 `GMAIL_CLIENT_ID`、`GMAIL_CLIENT_SECRET`、`GMAIL_FROM_EMAIL`，暂时保持 `EMAIL_MODE=local-fake`。
+3. 执行 `npm run gmail:authorize`，在 Google 页面完成授权；脚本会把 `GMAIL_REFRESH_TOKEN` 自动保存到被 Git 忽略的 `.dev.vars`。不要把 client secret 或 refresh token 发到聊天、提交 Git 或放入前端。
+4. 确认要做真实测试时，把本地 `.dev.vars` 的 `EMAIL_MODE` 改为 `gmail`，重启 `npm run dev`，再在后台点击“投递邮件”。
+5. 验收通过后恢复 `EMAIL_MODE=local-fake`；Cloudflare Preview/Production 的 Secret、D1 和 Access 仍需另行授权与验收，本地配置不会自动发布。
+
+真实投递顺序是：新咨询通知 `ADMIN_EMAIL`；管理员报价通知客户咨询中保存的邮箱。每封邮件仍经过 `email_outbox`，失败会保留状态并按尝试次数重试；当前没有自动退信处理。
+
 ## 上线前仍需完成
 
 - 在 Cloudflare 创建独立 preview D1 与 production D1，并把真实 ID 写入对应环境配置。
 - 创建 Cloudflare Access self-hosted application，只允许唯一管理员身份。
 - 在 Pages 预览环境设置 `ACCESS_TEAM_DOMAIN`、`ACCESS_AUD`、`ADMIN_EMAIL`。
+- 本地验证可在未提交的 `.dev.vars` 中设置 `LOCAL_ADMIN_PREVIEW=true`；它只对 `localhost`、`127.0.0.1`、`::1` 请求生效，不能绕过非本地环境的 Cloudflare Access。生产和 Cloudflare 预览仍必须配置 Access。
 - 为当前生产 HEAD 新建本阶段专用回退分支/标签。
 - 核对实际管理浏览器中的 `yx-site-v2`；其中如含个人咨询数据，需单独确认迁移白名单。
 - 对阶段 2/3 做 Cloudflare preview D1、Access 和 Pages 预览验收；本地代码已具备版本冲突检查、输入验证和审计边界。
@@ -98,5 +132,7 @@
 - 阶段 1（本地后端与数据库基础）：本地实现与验证已完成；远程资源未创建。
 - 阶段 2（安全后台写操作）：本地实现已完成，preview D1 / Access / Pages 远程验收待完成。
 - 阶段 3（下单与议价交互）：本地实现与验证已完成；云端 preview 尚未创建。
+- 阶段 3 后续（上线前硬化与咨询转化）：本地实现与验证已完成；云端 preview 尚未创建。
+- 阶段 5A（本地运营能力）：已开始；跟进字段、筛选排序和内部事件记录进入本地验收，云端 preview 尚未创建。
 - 阶段 4（支付）：未开始。
 - 阶段 5（生产安全核验与上线）：未开始。

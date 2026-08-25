@@ -1,9 +1,10 @@
-import { AccessConfigurationError, verifyAdminAccess } from "../../_lib/access.js";
+import { AccessConfigurationError, verifyAdminAccess, verifyLocalAdminPreview } from "../../_lib/access.js";
 import { adminJson } from "../../_lib/http.js";
 
 export async function onRequest(context) {
   try {
-    context.data.admin = await verifyAdminAccess(context.request, context.env);
+    context.data.admin = verifyLocalAdminPreview(context.request, context.env)
+      || await verifyAdminAccess(context.request, context.env);
     return context.next();
   } catch (error) {
     if (error instanceof AccessConfigurationError) {

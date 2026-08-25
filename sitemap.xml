@@ -90,9 +90,4 @@
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
-  <url>
-    <loc>https://youxianglong.com/admin.html</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.1</priority>
-  </url>
 </urlset>

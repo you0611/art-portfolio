@@ -6,6 +6,7 @@ generate_*.py
 node_modules/
 dist/
 .wrangler/
+private-backup/
 .dev.vars
 .env
 .env.*

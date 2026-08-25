@@ -4,6 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>网站管理 · 游祥龙艺术工作室</title>
+    <meta name="robots" content="noindex, nofollow, noarchive" />
     <meta
       name="description"
       content="游祥龙艺术工作室管理后台 — 作品管理、艺术家资料、人员与咨询记录维护。"
@@ -19,14 +20,14 @@
           <small data-i18n="brandSub">油画 · 风景 · 人物</small>
         </span>
       </a>
-      <nav class="main-nav" aria-label="Admin navigation">
+      <nav class="main-nav" id="main-navigation" aria-label="Admin navigation">
         <a href="gallery.html#gallery" data-i18n="navGallery">作品</a>
         <a href="gallery.html#artist" data-i18n="navArtist">艺术家</a>
         <a href="gallery.html#contact" data-i18n="navContact">收藏咨询</a>
       </nav>
       <div class="header-actions">
         <button class="ghost-button" id="languageToggle" type="button">EN</button>
-        <button class="menu-button" id="menuToggle" type="button" aria-label="Menu"><span aria-hidden="true"></span></button>
+        <button class="menu-button" id="menuToggle" type="button" aria-label="Menu" aria-expanded="false" aria-controls="main-navigation"><span aria-hidden="true"></span></button>
       </div>
     </header>
 
@@ -127,7 +128,27 @@
         <div class="admin-panel admin-orders-panel" id="adminOrders" hidden>
           <div>
             <p class="form-note" data-i18n="adminOrdersNotice">这里是服务端咨询与议价流程；旧浏览器里的咨询记录不会自动迁移。</p>
-            <button class="secondary-button" id="reloadOrders" type="button" data-i18n="reloadOrders">重新加载咨询</button>
+            <div class="admin-order-filters">
+              <label>
+                <span data-i18n="followUpFilter">跟进筛选</span>
+                <select id="orderFollowUpFilter">
+                  <option value="all" data-i18n="allFollowUps">全部跟进</option>
+                  <option value="unprocessed" data-i18n="unprocessed">未处理</option>
+                  <option value="contacting" data-i18n="contacting">沟通中</option>
+                  <option value="completed" data-i18n="completed">已完成</option>
+                  <option value="cancelled" data-i18n="cancelled">已取消</option>
+                </select>
+              </label>
+              <label>
+                <span data-i18n="orderSort">排序</span>
+                <select id="orderSort">
+                  <option value="followUp" data-i18n="sortFollowUp">按跟进时间</option>
+                  <option value="updated" data-i18n="sortUpdated">按最近更新</option>
+                  <option value="created" data-i18n="sortCreated">按创建时间</option>
+                </select>
+              </label>
+              <button class="secondary-button" id="reloadOrders" type="button" data-i18n="reloadOrders">重新加载咨询</button>
+            </div>
             <div class="admin-list" id="orderAdminList"></div>
           </div>
           <div class="admin-order-tools">
@@ -171,7 +192,39 @@
                 </select>
               </label>
               <button class="secondary-button" type="submit" data-i18n="submitOrderStatus">保存阶段</button>
+              <p class="form-note" id="orderStatusNote" role="status"></p>
             </form>
+            <form class="admin-form" id="followUpForm" hidden>
+              <label>
+                <span data-i18n="followUpStatus">跟进状态</span>
+                <select id="followUpStatus">
+                  <option value="unprocessed" data-i18n="unprocessed">未处理</option>
+                  <option value="contacting" data-i18n="contacting">沟通中</option>
+                  <option value="completed" data-i18n="completed">已完成</option>
+                  <option value="cancelled" data-i18n="cancelled">已取消</option>
+                </select>
+              </label>
+              <label>
+                <span data-i18n="nextFollowUpAt">下一次跟进时间</span>
+                <input id="nextFollowUpAt" type="datetime-local" />
+              </label>
+              <label>
+                <span data-i18n="adminNote">管理员备注</span>
+                <textarea id="adminNote" rows="4" maxlength="4000"></textarea>
+              </label>
+              <button class="primary-button" type="submit" data-i18n="saveFollowUp">保存跟进</button>
+            </form>
+            <div>
+              <p class="form-note" data-i18n="notificationEvents">内部通知事件（仅记录，不发送外部消息）</p>
+              <div class="admin-list" id="notificationEventList"></div>
+            </div>
+            <div>
+              <div class="form-actions">
+                <p class="form-note" id="emailOutboxMode" data-i18n="localEmailOutbox">本地邮件出站（假发送）</p>
+                <button class="secondary-button" id="dispatchEmailOutbox" type="button" data-i18n="dispatchEmailOutbox">模拟投递</button>
+              </div>
+              <div class="admin-list" id="emailOutboxList"></div>
+            </div>
           </div>
         </div>
 

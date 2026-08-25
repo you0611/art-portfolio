@@ -1,6 +1,7 @@
 export const PUBLIC_ORDER_BODY_BYTES = 16 * 1024;
 export const PUBLIC_OFFER_BODY_BYTES = 8 * 1024;
 export const ADMIN_ORDER_BODY_BYTES = 8 * 1024;
+export const FOLLOW_UP_STATUSES = ["unprocessed", "contacting", "completed", "cancelled"];
 
 export class CommerceInputError extends Error {
   constructor(code, message, status = 422) {
@@ -158,11 +159,32 @@ function parseFutureTimestamp(value) {
 }
 
 export function parseOrderStatusPatch(body) {
-  rejectUnknownFields(body, new Set(["version", "status"]));
-  return {
+  rejectUnknownFields(body, new Set(["version", "status", "followUpStatus", "nextFollowUpAt", "adminNote"]));
+  const result = {
     version: integer("version", body.version, 1, 2_147_483_647),
-    status: enumValue("status", body.status, ["negotiating", "awaiting_payment", "cancelled"]),
+    status: body.status === undefined ? null : enumValue("status", body.status, ["negotiating", "awaiting_payment", "cancelled"]),
   };
+  if (body.followUpStatus !== undefined) {
+    result.followUpStatus = enumValue("followUpStatus", body.followUpStatus, FOLLOW_UP_STATUSES);
+  }
+  if (body.nextFollowUpAt !== undefined) {
+    result.nextFollowUpAt = parseFollowUpTimestamp(body.nextFollowUpAt);
+  }
+  if (body.adminNote !== undefined) {
+    result.adminNote = optionalString("adminNote", body.adminNote, 4_000);
+  }
+  if (result.status === null && result.followUpStatus === undefined && result.nextFollowUpAt === undefined && result.adminNote === undefined) {
+    throw new CommerceInputError("EMPTY_ORDER_PATCH", "At least one order field must be provided.", 400);
+  }
+  return result;
+}
+
+function parseFollowUpTimestamp(value) {
+  if (value === null || value === "") return null;
+  if (typeof value !== "string") invalid("nextFollowUpAt", "must be an ISO timestamp or null");
+  const time = Date.parse(value);
+  if (!Number.isFinite(time)) invalid("nextFollowUpAt", "must be an ISO timestamp or null");
+  return new Date(time).toISOString();
 }
 
 export function parseHoldBody(body) {
@@ -298,7 +320,9 @@ export const ADMIN_ORDER_SELECT = `
     o.customer_name AS customerName, o.customer_email AS customerEmail,
     o.customer_contact AS customerContact, o.customer_country_code AS customerCountryCode,
     o.preferred_language AS preferredLanguage, o.contact_note AS contactNote,
-    o.shipping_note AS shippingNote, o.created_at AS createdAt, o.updated_at AS updatedAt,
+    o.shipping_note AS shippingNote, o.follow_up_status AS followUpStatus,
+    o.next_follow_up_at AS nextFollowUpAt, o.admin_note AS adminNote,
+    o.created_at AS createdAt, o.updated_at AS updatedAt,
     oi.id AS orderItemId, a.id AS artworkId, a.title_zh AS artworkTitleZh,
     a.title_en AS artworkTitleEn, a.image_url AS artworkImage, a.sale_status AS artworkSaleStatus,
     ih.id AS holdId, ih.status AS holdStatus, ih.expires_at AS holdExpiresAt,
@@ -323,6 +347,14 @@ export const ADMIN_ORDER_OFFERS_SQL = `
   FROM offers
   WHERE order_item_id = (SELECT id FROM order_items WHERE order_id = ?)
   ORDER BY created_at ASC, id ASC
+`;
+export const ADMIN_ORDER_EVENTS_SQL = `
+  SELECT id, event_type AS eventType, delivery_status AS deliveryStatus,
+    attempt_count AS attemptCount, failure_message AS failureMessage,
+    details_json AS detailsJson, created_at AS createdAt
+  FROM notification_events
+  WHERE order_id = ?
+  ORDER BY created_at DESC, id DESC
 `;
 
 export function mapPublicOrder(row) {
@@ -352,7 +384,7 @@ export function mapPublicOrder(row) {
   };
 }
 
-export function mapAdminOrder(row, offers = []) {
+export function mapAdminOrder(row, offers = [], notificationEvents = []) {
   if (!row) return null;
   return {
     id: row.id,
@@ -368,6 +400,11 @@ export function mapAdminOrder(row, offers = []) {
     },
     contactNote: row.contactNote,
     shippingNote: row.shippingNote,
+    followUp: {
+      status: row.followUpStatus,
+      nextAt: row.nextFollowUpAt,
+      note: row.adminNote,
+    },
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
     artwork: {
@@ -392,6 +429,20 @@ export function mapAdminOrder(row, offers = []) {
         }
       : null,
     offers,
+    notificationEvents,
+  };
+}
+
+export function mapNotificationEvent(row) {
+  if (!row) return null;
+  return {
+    id: row.id,
+    eventType: row.eventType,
+    deliveryStatus: row.deliveryStatus,
+    attemptCount: row.attemptCount,
+    failureMessage: row.failureMessage,
+    detailsJson: row.detailsJson,
+    createdAt: row.createdAt,
   };
 }
 

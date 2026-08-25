@@ -1,3 +1,6 @@
+const INQUIRY_TIMEOUT_MS = 15000;
+let inquiryRetry = { signature: "", key: "" };
+
 function renderFilters() {
   const categories = ["all", ...new Set(visibleWorks().map((work) => work.category).filter(Boolean))];
   byId("categoryFilter").innerHTML = categories
@@ -27,11 +30,11 @@ function renderGallery() {
     const price = work.hidePrice || !work.price ? t("priceOnRequest") : work.price;
     const href = workDetailHref(work.id);
     const dynamicDetail = href.startsWith("gallery.html?");
-    html += '<article class="art-card" tabindex="0"' + (dynamicDetail ? ' data-work-id="' + work.id + '"' : '') + '><a href="' + href + '" class="card-link"><figure><img src="' + work.image + '" alt="' + title + '" /></figure><div class="art-card-body"><div class="art-card-heading"><span class="art-card-order">' + String(index + 1).padStart(2, "0") + '</span><span class="badge">' + t(work.status) + '</span></div><h3>' + title + '</h3><div class="meta-line">' + work.medium + ' · ' + work.size + ' · ' + work.year + '</div><div class="price-line">' + price + '</div></div></a></article>';
+    html += '<article class="art-card" tabindex="0"' + (dynamicDetail ? ' data-work-id="' + work.id + '"' : '') + '><a href="' + href + '" class="card-link"><figure><img src="' + work.image + '" alt="' + title + '" loading="lazy" decoding="async" /></figure><div class="art-card-body"><div class="art-card-heading"><span class="art-card-order">' + String(index + 1).padStart(2, "0") + '</span><span class="badge">' + t(work.status) + '</span></div><h3>' + title + '</h3><div class="meta-line">' + work.medium + ' · ' + work.size + ' · ' + work.year + '</div><div class="price-line">' + price + '</div></div></a></article>';
   });
 
   const firstWork = works[0];
-  html += '<article class="art-card more-card"><a href="works.html" class="card-link"><img class="more-card-image" src="' + firstWork.image + '" alt="" /><div class="more-content"><span class="more-icon" aria-hidden="true"></span><span>' + t("moreWorks") + '</span></div></a></article>';
+  html += '<article class="art-card more-card"><a href="works.html" class="card-link"><img class="more-card-image" src="' + firstWork.image + '" alt="" loading="lazy" decoding="async" /><div class="more-content"><span class="more-icon" aria-hidden="true"></span><span>' + t("moreWorks") + '</span></div></a></article>';
   byId("artGrid").innerHTML = html;
 }
 let currentDetailId = null;
@@ -42,7 +45,7 @@ function renderDetail(workId) {
   currentDetailId = workId;
   byId("workDetail").hidden = false;
   byId("detailLayout").innerHTML = `
-    <div class="detail-image"><img src="${work.image}" alt="${localText(work, "titleZh", "titleEn")}" /></div>
+    <div class="detail-image"><img src="${work.image}" alt="${localText(work, "titleZh", "titleEn")}" loading="eager" decoding="async" /></div>
     <div class="detail-copy">
       <span class="detail-record">${work.year || ""} · ${work.medium || ""}</span>
       <h2>${localText(work, "titleZh", "titleEn")}</h2>
@@ -58,7 +61,8 @@ function renderDetail(workId) {
       <a class="primary-button" href="#contact">${t("inquiry")}</a>
     </div>`;
   byId("inquiryWork").value = work.id;
-  byId("workDetail").scrollIntoView({ behavior: "smooth" });
+  const target = location.hash === "#contact" ? byId("contact") : byId("workDetail");
+  target.scrollIntoView({ behavior: "smooth" });
 }
 
 function renderArtist() {
@@ -79,10 +83,14 @@ function renderArtist() {
 }
 
 function renderInquirySelect() {
-  byId("inquiryWork").innerHTML = visibleWorks()
-    .filter((work) => work.status === "available")
-    .map((work) => `<option value="${work.id}">${localText(work, "titleZh", "titleEn")}</option>`)
-    .join("");
+  const select = byId("inquiryWork");
+  const submitButton = byId("inquiryForm").querySelector('button[type="submit"]');
+  const availableWorks = visibleWorks().filter((work) => work.status === "available");
+  select.innerHTML = availableWorks.length
+    ? availableWorks.map((work) => `<option value="${work.id}">${localText(work, "titleZh", "titleEn")}</option>`).join("")
+    : `<option value="">${t("noAvailableWorks")}</option>`;
+  select.disabled = !availableWorks.length;
+  submitButton.disabled = !availableWorks.length;
 }
 
 function renderAll() {
@@ -121,7 +129,9 @@ byId("languageToggle").addEventListener("click", () => {
 });
 
 byId("menuToggle").addEventListener("click", () => {
-  document.querySelector(".main-nav").classList.toggle("is-open");
+  const menu = document.querySelector(".main-nav");
+  const isOpen = menu.classList.toggle("is-open");
+  byId("menuToggle").setAttribute("aria-expanded", String(isOpen));
 });
 
 byId("closeDetail").addEventListener("click", () => {
@@ -141,6 +151,20 @@ byId("inquiryForm").addEventListener("submit", async (event) => {
   const submitButton = form.querySelector('button[type="submit"]');
   const contact = byId("inquiryContact").value.trim();
   const email = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contact) ? contact : "";
+  const payload = {
+    artworkId: byId("inquiryWork").value,
+    customerName: byId("inquiryName").value.trim(),
+    customerEmail: email,
+    customerContact: contact,
+    preferredLanguage: state.language,
+    contactNote: byId("inquiryMessage").value.trim(),
+  };
+  const signature = JSON.stringify(payload);
+  if (inquiryRetry.signature !== signature) {
+    inquiryRetry = { signature, key: crypto.randomUUID() };
+  }
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), INQUIRY_TIMEOUT_MS);
   submitButton.disabled = true;
   byId("formNote").textContent = t("inquirySending");
   try {
@@ -149,25 +173,21 @@ byId("inquiryForm").addEventListener("submit", async (event) => {
       headers: {
         accept: "application/json",
         "content-type": "application/json",
-        "idempotency-key": crypto.randomUUID(),
+        "idempotency-key": inquiryRetry.key,
       },
       cache: "no-store",
-      body: JSON.stringify({
-        artworkId: byId("inquiryWork").value,
-        customerName: byId("inquiryName").value.trim(),
-        customerEmail: email,
-        customerContact: contact,
-        preferredLanguage: state.language,
-        contactNote: byId("inquiryMessage").value.trim(),
-      }),
+      signal: controller.signal,
+      body: signature,
     });
     const body = await response.json().catch(() => null);
     if (!response.ok) throw new Error(body?.error?.message || "Request failed.");
     byId("formNote").textContent = `${t("inquirySaved")}${body.order.reference}`;
+    inquiryRetry = { signature: "", key: "" };
     form.reset();
-  } catch {
-    byId("formNote").textContent = t("inquiryFailed");
+  } catch (error) {
+    byId("formNote").textContent = t(error?.name === "AbortError" ? "inquiryTimeout" : "inquiryFailed");
   } finally {
+    clearTimeout(timeout);
     submitButton.disabled = false;
   }
 });

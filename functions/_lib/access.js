@@ -4,6 +4,27 @@ const jwksByDomain = new Map();
 
 export class AccessConfigurationError extends Error {}
 
+function isLoopbackRequest(request) {
+  let hostname;
+  try {
+    hostname = new URL(request.url).hostname;
+  } catch {
+    return false;
+  }
+
+  return hostname === "127.0.0.1" || hostname === "localhost" || hostname === "::1";
+}
+
+export function verifyLocalAdminPreview(request, env) {
+  if (String(env.LOCAL_ADMIN_PREVIEW || "").trim().toLowerCase() !== "true") return null;
+  if (!isLoopbackRequest(request)) return null;
+
+  const adminEmail = typeof env.ADMIN_EMAIL === "string" ? env.ADMIN_EMAIL.trim().toLowerCase() : "";
+  if (!adminEmail) throw new AccessConfigurationError("ADMIN_EMAIL is required for local admin preview.");
+
+  return { email: adminEmail, subject: "local-preview" };
+}
+
 export function normalizeAccessConfig(env) {
   const rawDomain = typeof env.ACCESS_TEAM_DOMAIN === "string" ? env.ACCESS_TEAM_DOMAIN.trim() : "";
   const audience = typeof env.ACCESS_AUD === "string" ? env.ACCESS_AUD.trim() : "";

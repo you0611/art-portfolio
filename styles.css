@@ -392,7 +392,7 @@ dd {
 .header-inquiry {
   display: inline-grid;
   place-items: center;
-  min-height: 38px;
+  min-height: 44px;
   padding: 0 15px;
   color: var(--white);
   background: var(--accent);
@@ -407,8 +407,8 @@ dd {
 
 .ghost-button,
 .menu-button {
-  min-width: 42px;
-  height: 38px;
+  min-width: 44px;
+  height: 44px;
   color: var(--ink);
   background: transparent;
   border-color: var(--line);
@@ -1162,6 +1162,14 @@ body:not(.public-site) .detail-image {
   line-height: 1.9;
 }
 
+.contact-process {
+  padding-left: 16px;
+  border-left: 1px solid var(--accent);
+  color: var(--ink) !important;
+  font-size: 13px !important;
+  line-height: 1.8 !important;
+}
+
 .inquiry-form,
 .admin-form {
   display: grid;
@@ -1198,6 +1206,12 @@ label span {
   margin: 0;
   color: var(--olive);
   font-size: 12px;
+}
+
+.inquiry-form select:disabled,
+.inquiry-form button:disabled {
+  cursor: not-allowed;
+  opacity: 0.52;
 }
 
 /* Contact ledger */
@@ -1399,7 +1413,7 @@ label span {
 
 .tab,
 .icon-button {
-  min-height: 38px;
+  min-height: 44px;
   padding: 0 14px;
   color: var(--ink);
   background: transparent;
@@ -1469,8 +1483,28 @@ label span {
   gap: 16px;
 }
 
+.admin-order-filters {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin: 16px 0;
+}
+
+.admin-order-filters label:last-child {
+  align-self: end;
+}
+
 .admin-order-tools .admin-form {
   padding: 22px;
+}
+
+#notificationEventList .admin-item {
+  grid-template-columns: 1fr auto;
+  padding: 10px 12px;
+}
+
+.empty-state.is-error {
+  color: var(--accent-dark);
 }
 
 .admin-item {
@@ -1688,6 +1722,10 @@ label span {
     grid-template-columns: 1fr;
   }
 
+  .admin-order-filters {
+    grid-template-columns: 1fr;
+  }
+
   .site-footer {
     grid-template-columns: 1fr;
     align-items: start;
@@ -1758,12 +1796,12 @@ label span {
   }
 
   .hero-stage {
-    min-height: 66svh;
+    min-height: 60svh;
     padding: 20px 16px 124px;
   }
 
   .hero-stage > img {
-    height: 46svh;
+    height: 40svh;
   }
 
   .hero-caption {
@@ -1797,7 +1835,7 @@ label span {
   }
 
   .hero-copy {
-    min-height: 64svh;
+    min-height: 48svh;
     padding: 54px 20px;
     overflow: visible;
   }
@@ -1889,6 +1927,14 @@ label span {
 
   .form-grid {
     grid-template-columns: 1fr;
+  }
+
+  .admin-tabs {
+    position: sticky;
+    top: 66px;
+    z-index: 8;
+    padding-block: 10px;
+    background: #e9ebe7;
   }
 
   .admin-item {

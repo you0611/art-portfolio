@@ -20,7 +20,7 @@
 
 ## 商务后端开发
 
-商务后端正在独立分支中分阶段建设，技术边界为 Cloudflare Pages Functions + D1，后台身份验证使用 Cloudflare Access。阶段 2 和阶段 3 已在本地完成，公共画廊仍未切换到 D1，也没有接入支付、通知或真实客户数据。
+商务后端正在独立分支中分阶段建设，技术边界为 Cloudflare Pages Functions + D1，后台身份验证使用 Cloudflare Access。阶段 2、阶段 3 及上线前硬化已在本地完成，公共画廊仍未切换到 D1，也没有接入支付、通知或真实客户数据。
 
 开发与安全边界详见 `docs/commerce-backend.md`。本地验证入口：
 

@@ -4,6 +4,7 @@ import { DatabaseSync } from "node:sqlite";
 import test from "node:test";
 
 import { AccessConfigurationError, normalizeAccessConfig } from "../functions/_lib/access.js";
+import { onRequest as onAdminMiddleware } from "../functions/api/admin/_middleware.js";
 
 const migrationSql = readFileSync(
   new URL("../migrations/0001_commerce_foundation.sql", import.meta.url),
@@ -85,4 +86,24 @@ test("admin access configuration fails closed and accepts one exact email", () =
       adminEmail: "owner@example.test",
     },
   );
+});
+
+test("local admin preview is loopback-only and still requires the configured email", async () => {
+  const next = async () => new Response(JSON.stringify({ ok: true }));
+  const localResponse = await onAdminMiddleware({
+    request: new Request("http://127.0.0.1:8788/api/admin/session"),
+    env: { ADMIN_EMAIL: "Owner@Example.Test", LOCAL_ADMIN_PREVIEW: "true" },
+    data: {},
+    next,
+  });
+  assert.equal(localResponse.status, 200);
+
+  const remoteResponse = await onAdminMiddleware({
+    request: new Request("https://preview.example.test/api/admin/session"),
+    env: { ADMIN_EMAIL: "owner@example.test", LOCAL_ADMIN_PREVIEW: "true" },
+    data: {},
+    next,
+  });
+  assert.equal(remoteResponse.status, 503);
+  assert.equal(remoteResponse.headers.get("cache-control"), "no-store");
 });

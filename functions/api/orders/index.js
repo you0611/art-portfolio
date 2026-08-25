@@ -86,6 +86,11 @@ export async function onRequest(context) {
       throw error;
     }
 
+    const row = await context.env.DB.prepare(PUBLIC_ORDER_SQL).bind(reference).first();
+    if (row) {
+      return noStoreJson({ order: mapPublicOrder(row) }, { status: 201 });
+    }
+
     if (Number(batchResult?.[0]?.meta?.changes || 0) !== 1) {
       const artwork = await context.env.DB
         .prepare("SELECT content_status, sale_status, negotiation_enabled FROM artworks WHERE id = ?")
@@ -100,9 +105,7 @@ export async function onRequest(context) {
       );
     }
 
-    const row = await context.env.DB.prepare(PUBLIC_ORDER_SQL).bind(reference).first();
-    if (!row) return serviceUnavailable();
-    return noStoreJson({ order: mapPublicOrder(row) }, { status: 201 });
+    return serviceUnavailable();
   } catch (error) {
     return inputError(error);
   }

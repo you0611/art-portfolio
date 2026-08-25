@@ -1,10 +1,12 @@
 import {
   ADMIN_ORDER_BY_ID_SQL,
+  ADMIN_ORDER_EVENTS_SQL,
   ADMIN_ORDER_OFFERS_SQL,
   canTransitionOrder,
   CommerceInputError,
   mapAdminOrder,
   mapOffer,
+  mapNotificationEvent,
   newRequestId,
   parseJsonBody,
   parseOrderStatusPatch,
@@ -25,7 +27,12 @@ async function loadOrder(db, id) {
   const row = await db.prepare(ADMIN_ORDER_BY_ID_SQL).bind(id).first();
   if (!row) return null;
   const offerResult = await db.prepare(ADMIN_ORDER_OFFERS_SQL).bind(id).all();
-  return mapAdminOrder(row, (offerResult.results || []).map(mapOffer));
+  const eventResult = await db.prepare(ADMIN_ORDER_EVENTS_SQL).bind(id).all();
+  return mapAdminOrder(
+    row,
+    (offerResult.results || []).map(mapOffer),
+    (eventResult.results || []).map(mapNotificationEvent),
+  );
 }
 
 async function getOrder(context, id) {
@@ -45,7 +52,7 @@ async function patchOrder(context, id) {
       { status: 409 },
     );
   }
-  if (!canTransitionOrder(existing.status, input.status)) {
+  if (input.status !== null && !canTransitionOrder(existing.status, input.status)) {
     return adminJson(
       { error: { code: "INVALID_ORDER_TRANSITION", message: "This order status transition is not allowed." } },
       { status: 422 },
@@ -54,14 +61,41 @@ async function patchOrder(context, id) {
 
   const requestId = newRequestId();
   const auditId = newRequestId();
-  const details = JSON.stringify({ statusFrom: existing.status, statusTo: input.status });
+  const assignments = [];
+  const values = [];
+  const changedFields = [];
+  if (input.status !== null) {
+    assignments.push("status = ?");
+    values.push(input.status);
+    changedFields.push("status");
+  }
+  if (input.followUpStatus !== undefined) {
+    assignments.push("follow_up_status = ?");
+    values.push(input.followUpStatus);
+    changedFields.push("followUpStatus");
+  }
+  if (input.nextFollowUpAt !== undefined) {
+    assignments.push("next_follow_up_at = ?");
+    values.push(input.nextFollowUpAt);
+    changedFields.push("nextFollowUpAt");
+  }
+  if (input.adminNote !== undefined) {
+    assignments.push("admin_note = ?");
+    values.push(input.adminNote);
+    changedFields.push("adminNote");
+  }
+  const details = JSON.stringify({
+    changedFields,
+    statusFrom: input.status === null ? undefined : existing.status,
+    statusTo: input.status === null ? undefined : input.status,
+  });
   const update = context.env.DB.prepare(
     `UPDATE orders
-     SET status = ?, version = version + 1,
+     SET ${assignments.join(", ")}, version = version + 1,
          updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
      WHERE id = ? AND version = ? AND status = ?
      RETURNING version`,
-  ).bind(input.status, id, input.version, existing.status);
+  ).bind(...values, id, input.version, existing.status);
   const audit = context.env.DB.prepare(
     `INSERT INTO admin_audit_log
       (id, admin_email, action, entity_type, entity_id, request_id, details_json)

@@ -1,10 +1,12 @@
 import {
   ADMIN_ORDER_BY_ID_SQL,
+  ADMIN_ORDER_EVENTS_SQL,
   ADMIN_ORDER_OFFERS_SQL,
   ADMIN_ORDER_BODY_BYTES,
   CommerceInputError,
   mapAdminOrder,
   mapOffer,
+  mapNotificationEvent,
   newOfferId,
   newRequestId,
   parseJsonBody,
@@ -25,7 +27,12 @@ async function loadOrder(db, id) {
   const row = await db.prepare(ADMIN_ORDER_BY_ID_SQL).bind(id).first();
   if (!row) return null;
   const offers = await db.prepare(ADMIN_ORDER_OFFERS_SQL).bind(id).all();
-  return mapAdminOrder(row, (offers.results || []).map(mapOffer));
+  const events = await db.prepare(ADMIN_ORDER_EVENTS_SQL).bind(id).all();
+  return mapAdminOrder(
+    row,
+    (offers.results || []).map(mapOffer),
+    (events.results || []).map(mapNotificationEvent),
+  );
 }
 
 export async function onRequest(context) {
@@ -65,7 +72,15 @@ export async function onRequest(context) {
     ).bind(auditId, context.data.admin.email, offerId, requestId, details);
 
     const result = await context.env.DB.batch([insert, update, audit]);
-    if (Number(result?.[0]?.meta?.changes || 0) !== 1 || Number(result?.[1]?.meta?.changes || 0) !== 1) {
+    const persistedOffer = await context.env.DB
+      .prepare("SELECT id FROM offers WHERE id = ?")
+      .bind(offerId)
+      .first();
+    const persistedOrder = await context.env.DB
+      .prepare("SELECT version FROM orders WHERE id = ?")
+      .bind(id)
+      .first();
+    if (!persistedOffer || !persistedOrder || Number(persistedOrder.version) <= input.version) {
       return adminJson(
         { error: { code: "VERSION_CONFLICT", message: "Order was modified by another administrator." } },
         { status: 409 },

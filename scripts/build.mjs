@@ -11,7 +11,6 @@ const rootAssets = [
   "gallery.html",
   "index.html",
   "splash.html",
-  "test.html",
   "works.html",
   "admin.js",
   "app.js",

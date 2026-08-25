@@ -1,9 +1,11 @@
 import {
   ADMIN_ORDER_BY_ID_SQL,
+  ADMIN_ORDER_EVENTS_SQL,
   ADMIN_ORDER_BODY_BYTES,
   CommerceInputError,
   mapAdminOrder,
   mapOffer,
+  mapNotificationEvent,
   newHoldId,
   newRequestId,
   parseHoldBody,
@@ -26,7 +28,12 @@ async function loadOrder(db, id) {
   const row = await db.prepare(ADMIN_ORDER_BY_ID_SQL).bind(id).first();
   if (!row) return null;
   const offers = await db.prepare(ADMIN_ORDER_OFFERS_SQL).bind(id).all();
-  return mapAdminOrder(row, (offers.results || []).map(mapOffer));
+  const events = await db.prepare(ADMIN_ORDER_EVENTS_SQL).bind(id).all();
+  return mapAdminOrder(
+    row,
+    (offers.results || []).map(mapOffer),
+    (events.results || []).map(mapNotificationEvent),
+  );
 }
 
 export async function onRequest(context) {
