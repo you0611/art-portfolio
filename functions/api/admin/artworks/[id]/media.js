@@ -1,6 +1,7 @@
 import { ADMIN_ARTWORK_BY_ID_SQL, mapArtwork, validateArtworkId } from "../../../../_lib/artworks.js";
 import {
   MediaInputError,
+  assertMediaQuota,
   buildMediaReplaceBatch,
   mediaObjectKey,
   parseMediaUpload,
@@ -43,6 +44,7 @@ export async function onRequest(context) {
         { status: 409 },
       );
     }
+    await assertMediaQuota(context.env.DB, upload.byteSize, context.env);
 
     const mediaId = `media-${crypto.randomUUID()}`;
     const requestId = crypto.randomUUID();

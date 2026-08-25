@@ -5,7 +5,9 @@
   "pages_build_output_dir": "./dist",
   "vars": {
     "EMAIL_MODE": "local-fake",
-    "PREVIEW_GATE_ENABLED": "true"
+    "PREVIEW_GATE_ENABLED": "true",
+    "MEDIA_MAX_TOTAL_BYTES": "1073741824",
+    "MEDIA_MAX_OBJECTS": "200"
   },
   "d1_databases": [
     {
@@ -13,6 +15,12 @@
       "database_name": "yx-art-studio-commerce-preview",
       "database_id": "c2bc1732-5151-44a9-91c7-d11b5ce4bc12",
       "migrations_dir": "migrations"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "MEDIA",
+      "bucket_name": "yx-art-studio-media-preview"
     }
   ]
 }

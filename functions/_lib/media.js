@@ -5,6 +5,15 @@ export const MAX_MEDIA_REQUEST_BYTES = MAX_MEDIA_BYTES + 64 * 1024;
 export const MAX_MEDIA_SIDE = 12_000;
 export const MAX_MEDIA_PIXELS = 60_000_000;
 
+function positiveInteger(value, name) {
+  if (value === undefined || value === null || value === "") return null;
+  const parsed = Number(value);
+  if (!Number.isSafeInteger(parsed) || parsed < 1) {
+    throw new Error(`${name} must be a positive integer.`);
+  }
+  return parsed;
+}
+
 const TYPES = Object.freeze({
   "image/jpeg": { extension: "jpg", signature: [0xff, 0xd8, 0xff] },
   "image/png": { extension: "png", signature: [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a] },
@@ -218,6 +227,27 @@ export function mediaObjectKey(artworkId, mediaId, extension) {
     throw new ArtworkInputError("INVALID_MEDIA_KEY", "Media object key is invalid.", 400);
   }
   return `artworks/${safeArtworkId}/${mediaId}.${extension}`;
+}
+
+export async function assertMediaQuota(db, byteSize, env = {}) {
+  const maxTotalBytes = positiveInteger(env.MEDIA_MAX_TOTAL_BYTES, "MEDIA_MAX_TOTAL_BYTES");
+  const maxObjects = positiveInteger(env.MEDIA_MAX_OBJECTS, "MEDIA_MAX_OBJECTS");
+  if (maxTotalBytes === null && maxObjects === null) return;
+
+  const usage = await db.prepare(`
+    SELECT COUNT(*) AS objectCount, COALESCE(SUM(byte_size), 0) AS totalBytes
+    FROM media_assets
+  `).first();
+  if (
+    (maxObjects !== null && Number(usage?.objectCount || 0) >= maxObjects) ||
+    (maxTotalBytes !== null && Number(usage?.totalBytes || 0) + byteSize > maxTotalBytes)
+  ) {
+    throw new MediaInputError(
+      "MEDIA_STORAGE_LIMIT_REACHED",
+      "Preview image storage limit reached. Remove an exact, reviewed archive before uploading again.",
+      507,
+    );
+  }
 }
 
 function stateExistsSql() {

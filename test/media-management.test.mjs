@@ -102,11 +102,11 @@ function uploadRequest({ version = 1, bytes = pngFixture(), type = "image/png", 
   });
 }
 
-function adminContext(request, db, bucket, id = "guiquilaixi") {
+function adminContext(request, db, bucket, id = "guiquilaixi", env = {}) {
   return {
     request,
     params: { id },
-    env: { DB: db, ...(bucket ? { MEDIA: bucket } : {}) },
+    env: { DB: db, ...(bucket ? { MEDIA: bucket } : {}), ...env },
     data: { admin: { email: "admin@example.test" } },
   };
 }
@@ -199,6 +199,22 @@ test("invalid files, stale versions, and absent storage fail closed", async () =
   const unavailable = await onAdminMedia(adminContext(uploadRequest(), db, null));
   assert.equal(unavailable.status, 503);
   assert.equal((await unavailable.json()).error.code, "MEDIA_STORAGE_NOT_CONFIGURED");
+});
+
+test("preview quota rejects uploads before writing an R2 object", async () => {
+  const db = makeD1();
+  const bucket = makeBucket();
+  const response = await onAdminMedia(adminContext(
+    uploadRequest(),
+    db,
+    bucket,
+    "guiquilaixi",
+    { MEDIA_MAX_TOTAL_BYTES: "28", MEDIA_MAX_OBJECTS: "200" },
+  ));
+  assert.equal(response.status, 507);
+  assert.equal((await response.json()).error.code, "MEDIA_STORAGE_LIMIT_REACHED");
+  assert.equal(bucket.objects.size, 0);
+  assert.equal(db.database.prepare("SELECT COUNT(*) AS count FROM media_assets").get().count, 0);
 });
 
 test("a failed database transaction removes only the uncommitted generated object", async () => {
