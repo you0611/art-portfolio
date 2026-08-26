@@ -757,6 +757,54 @@ async function loadPublicContent() {
   }
 }
 
+function applyServerArtworks(payload) {
+  if (!Array.isArray(payload?.artworks) || payload.artworks.length === 0) return false;
+  const currentById = new Map(state.works.map((work) => [work.id, work]));
+  const nextWorks = [];
+  for (const artwork of payload.artworks) {
+    const current = currentById.get(artwork?.id);
+    const image = typeof artwork?.image === "string" ? artwork.image : "";
+    if (
+      !current ||
+      !["available", "held", "sold", "not_for_sale"].includes(artwork.saleStatus) ||
+      !/^\/(?:api\/media\/media-[0-9a-f-]{36}|assets\/[A-Za-z0-9][A-Za-z0-9._/-]*)$/.test(image)
+    ) return false;
+    nextWorks.push({
+      ...current,
+      titleZh: artwork.titleZh,
+      titleEn: artwork.titleEn,
+      category: artwork.category,
+      medium: artwork.medium,
+      size: artwork.dimensions,
+      year: String(artwork.year),
+      image,
+      descriptionZh: artwork.descriptionZh,
+      descriptionEn: artwork.descriptionEn,
+      status: artwork.saleStatus,
+    });
+  }
+  state.works = nextWorks;
+  return true;
+}
+
+async function loadPublicArtworks() {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 8000);
+  try {
+    const response = await fetch("/api/artworks", {
+      headers: { accept: "application/json" },
+      cache: "no-store",
+      signal: controller.signal,
+    });
+    if (!response.ok) return false;
+    return applyServerArtworks(await response.json());
+  } catch {
+    return false;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 const STATIC_DETAIL_IDS = new Set([
   "cai-lusheng",
   "flower-2025",

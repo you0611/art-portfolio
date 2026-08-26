@@ -46,6 +46,13 @@ test("standalone work pages retain static image fallbacks and load server-manage
   assert.match(script, /fetch\("\/api\/artworks"/);
   assert.match(script, /image\.src = fallback/);
   assert.doesNotMatch(script, /innerHTML/);
+
+  const app = read("app.js");
+  const common = read("common.js");
+  assert.match(app, /loadPublicArtworks\(\)/);
+  assert.match(common, /fetch\("\/api\/artworks"/);
+  assert.match(common, /image:\s*artwork\.image|\bimage,/);
+  assert.match(common, /cache:\s*"no-store"/);
 });
 
 test("inquiry flow explains the next step and disables empty inventory", () => {

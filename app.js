@@ -262,8 +262,8 @@ renderAll();
 goToSlide(0);
 startSlideshow();
 
-loadPublicContent().then((loaded) => {
-  if (!loaded) return;
+Promise.all([loadPublicContent(), loadPublicArtworks()]).then((results) => {
+  if (!results.some(Boolean)) return;
   renderAll();
   if (currentDetailId) renderDetail(currentDetailId);
   goToSlide(heroIndex);
