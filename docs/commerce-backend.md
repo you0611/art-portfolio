@@ -15,7 +15,7 @@
 - 后端：Cloudflare Pages Functions。
 - 数据库：Cloudflare D1（SQLite 语义），binding 名称固定为 `DB`。
 - 后台认证：Cloudflare Access；Pages Functions 再校验 Access JWT 的签名、issuer、audience 和唯一管理员邮箱。
-- 图片：作品主图使用私有 Cloudflare R2 binding `MEDIA`；现有静态图片继续保留为回退基线。当前只完成本地模拟存储，尚未创建 Preview/Production R2。
+- 图片：作品主图使用私有 Cloudflare R2 binding `MEDIA`；现有静态图片继续保留为回退基线。Preview 已绑定独立私有桶 `yx-art-studio-media-preview`，Production R2 尚未创建。
 - 支付：未选择，数据库和 API 不依赖具体支付服务商。
 
 选择这一组合是为了沿用已有 Cloudflare Pages 发布边界，减少新服务器、补丁、端口和操作系统维护。代价是后端运行与数据层依赖 Cloudflare 平台。
@@ -109,17 +109,18 @@
 - 管理后台“内容资料”和“履历与动态”改为服务端读取与保存，所有写入使用字段白名单、长度/枚举/HTTPS 校验、乐观锁、事务审计和修订快照。
 - 内容不物理删除，只能归档；取消公开后仍可在后台核查。资料与条目均支持恢复上一版。
 - 公开页先显示现有静态内容，再读取 `/api/content`；网络或 API 失败不会把页面清空。服务端文案和履历使用 `textContent` 构建 DOM，避免把管理员输入作为 HTML 执行。
-- 图片上传、支付、真实邮件、真实客户数据和正式生产发布不在本阶段。
+- 支付、真实邮件、真实客户数据、现有图片批量迁移和正式生产发布不在本阶段。
 
-## 阶段 5D：作品媒体管理（本地完成）
+## 阶段 5D：作品媒体管理（本地与 Preview 完成）
 
 - 后台只接管作品主图；艺术家肖像与工作室图片仍保持静态，不在本阶段扩大范围。
 - 对象键由作品 ID 和随机 UUID 生成，原文件名只作后台说明，不能影响存储路径。
 - 服务端同时校验 MIME、文件魔数、最大 10 MB、64–12000 像素边长和 6000 万总像素；前端 `accept` 仅作选择提示，不作为安全边界。
 - R2 写入后若 D1 事务失败或版本冲突，只清理本次生成且未提交的新对象；已生效或历史对象不自动删除。
 - 每次替换保留静态路径或上一媒体引用；恢复前确认上一 R2 对象仍存在，避免把公开页切到损坏资源。
-- 作品列表、咨询记录和独立作品页均优先读取服务端主图；API 或新图失败时，页面继续使用原静态图片。
-- 本地真实操作验收完成后，上传对象、修订和审计 fixture 已按精确 ID 清理，17 件作品回到静态基线。Preview/Production R2、图片迁移和云端部署均未执行。
+- 公开画廊、作品列表、咨询记录和独立作品页均优先读取服务端主图；API 或新图失败时，页面继续使用原静态图片。Preview 验收发现并修复了画廊只读取静态状态的问题。
+- Preview 限制应用管理的媒体总量为 1 GiB、最多 200 个对象；单张仍不超过 10 MB。这是应用保护，不是 Cloudflare 账单硬上限。
+- 本地与 Preview 真实操作验收完成后，上传对象、修订和审计 fixture 均按精确 ID 清理，17 件作品回到静态基线。Production R2 与现有图片迁移均未执行。
 
 ## 本地开发
 
@@ -163,7 +164,7 @@
 - 阶段 3（下单与议价交互）：咨询、双方报价、hold、释放和取消已在独立 Preview 完整验收。
 - 阶段 3 后续（上线前硬化与咨询转化）：Preview 已设置 `noindex` 和全站爬虫禁止规则；桌面和手机公开页/后台均完成只读交互验收。
 - 阶段 5C（内容管理服务端化）：本地与独立 Preview 验收已完成。
-- 阶段 5D（作品媒体管理）：本地实现、上传/公开读取/恢复、桌面/手机验收已完成；Preview/Production R2 尚未创建，现有静态图未迁移或删除。
+- 阶段 5D（作品媒体管理）：本地与独立 Preview 的上传、R2公开读取、画廊同步、恢复和精确清理验收已完成；Production R2 尚未创建，现有静态图未迁移或删除。
 
 ## 独立 Cloudflare Preview（2026-08-25）
 
@@ -172,7 +173,7 @@
 - Preview 配置：`EMAIL_MODE=local-fake`、`PREVIEW_GATE_ENABLED=true`；`PREVIEW_GATE_PASSWORD` 与 `ADMIN_EMAIL` 由 Pages Secret 提供，不记录值。
 - 未登录页面/API 与错误密码返回 401；成功登录后健康检查和后台会话返回 200。门禁 Cookie 有效期 8 小时，使用 `HttpOnly`、`Secure`、`SameSite=Strict`。
 - Preview 的 `robots.txt` 禁止全站抓取，并附加 `X-Robots-Tag: noindex, nofollow, noarchive`。正式域名、DNS、生产分支和正式 Pages 项目未修改。
-- 旧的无门禁部署 `ccb1f7be-d06c-4f7a-8235-1f9f5f4511e0` 已删除并验证为 404；当前受保护部署为 `b6b4e1cc-1788-4eae-9f74-2e9cc58c42a9`，对应提交 `61a7366`。
+- 旧的无门禁部署 `ccb1f7be-d06c-4f7a-8235-1f9f5f4511e0` 已删除并验证为 404；当前受保护部署为 `7d05fcda-98aa-4d75-bb76-b021735b45f9`，对应提交 `49258d6`。Preview 密码可通过已登录的 Cloudflare CLI 直接覆盖重置，不依赖知道旧值。
 - 回滚门禁需要重新部署；不得仅关闭 `PREVIEW_GATE_ENABLED` 后继续公开使用。删除 Preview Pages 或 D1 是独立的破坏性操作，必须再次确认精确资源。
 - 阶段 5A（运营能力）：本地和独立 Preview 验收已完成；通知保持 `local-fake`，未发送真实邮件。
 - 阶段 4（支付）：未开始。

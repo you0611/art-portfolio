@@ -26,7 +26,8 @@
 - [ ] 需要回退时使用“恢复上一张”，不要直接修改 D1 或删除 R2 对象。
 - [ ] 恢复按钮不可用表示没有当前替换对应的上一版；先核对版本和审计，不要强行拼接对象键。
 - [ ] 定期比对 D1 active/archived 元数据和私有 R2 对象；任何清理必须先生成精确白名单，不能按目录批量删除。
-- [ ] Preview/Production R2 必须分桶或明确分前缀，并在部署前核对 binding；不得把 bucket 设为公开访问来绕过媒体 API。
+- [x] Preview 使用独立私有桶 `yx-art-studio-media-preview` 并核对 `MEDIA` binding；没有启用公开域名。Production 仍须另建独立桶，不得复用 Preview。
+- [ ] 每月查看 R2 与账户用量；Preview 应用上限为 1 GiB / 200 对象，但 Cloudflare 预算提醒不是硬停机上限。
 
 ## 本地导出与恢复演练
 
@@ -62,3 +63,6 @@ npx wrangler d1 execute yx-art-studio-commerce --local --file .\private-backup\c
 - [x] 修复远端 D1 已提交但接口误报 409 的成功判定并部署提交 `e369e4d`；当前 Preview 部署为 `c04df963-3aff-4277-b46d-f6410e64e33d`，正式 DNS、生产分支和支付配置未修改。
 - [x] Phase 5C 在 Preview 完成资料保存、公开页即时读取、恢复上一版、履历归档/恢复及桌面/手机验收；当前部署为 `b6b4e1cc-1788-4eae-9f74-2e9cc58c42a9`，对应提交 `61a7366`。
 - [x] Phase 5C 验收产生的内容修订与审计 fixture 已删除并回到迁移基线；原有两条已取消商务测试记录保持只读并未改动。
+- [x] Phase 5D 已创建并绑定私有 Preview R2，应用 `0006_stage5_media.sql`，完成后台上传、公开画廊读取、恢复与审计验收。
+- [x] Phase 5D 验收发现并修复公开画廊未读取 `/api/artworks` 的问题；部署提交为 `49258d6`。
+- [x] Phase 5D 测试对象、媒体元数据、修订和两条媒体审计均按精确 ID 清理；`guiquilaixi` 回到 v5 静态图基线，媒体相关计数为 0。

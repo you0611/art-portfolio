@@ -29,11 +29,11 @@ npm install
 npm run check
 ```
 
-独立 Preview 配置使用 `wrangler.preview.jsonc`，只绑定 `yx-art-studio-commerce-preview`。门禁密码与管理员邮箱是 Cloudflare Pages Secret，不写入仓库；正式 `wrangler.jsonc` 不启用门禁。
+独立 Preview 配置使用 `wrangler.preview.jsonc`，只绑定 `yx-art-studio-commerce-preview` 与私有桶 `yx-art-studio-media-preview`。门禁密码与管理员邮箱是 Cloudflare Pages Secret，不写入仓库；正式 `wrangler.jsonc` 不启用门禁。
 
 ## 图片素材
 
-原有图片素材（二进制文件）位于 `assets/` 目录，并作为服务端图片不可用时的回退。Phase 5D 本地预览使用私有 R2 模拟 binding；Preview/Production R2 尚未创建：
+原有图片素材（二进制文件）位于 `assets/` 目录，并作为服务端图片不可用时的回退。Phase 5D 已在本地和独立 Preview 验证私有 R2 binding；Production R2 尚未创建，现有作品图尚未迁移：
 - artist-portrait.jpg
 - cai-lusheng.jpg
 - flower-2025.jpg
