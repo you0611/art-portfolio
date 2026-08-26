@@ -13,8 +13,7 @@
     {
       "binding": "DB",
       "database_name": "yx-art-studio-commerce",
-      "database_id": "00000000-0000-0000-0000-000000000000",
-      "preview_database_id": "00000000-0000-0000-0000-000000000000",
+      "database_id": "47b72d1b-d7f0-4ca0-be11-a402d9dbd620",
       "migrations_dir": "migrations"
     }
   ]

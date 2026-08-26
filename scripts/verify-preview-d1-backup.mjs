@@ -7,10 +7,13 @@ import { fileURLToPath } from "node:url";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const wrangler = resolve(root, "node_modules", "wrangler", "bin", "wrangler.js");
-const database = "yx-art-studio-commerce-preview";
-const configPath = resolve(root, "wrangler.preview.jsonc");
-const temporaryRoot = await mkdtemp(join(tmpdir(), "yx-preview-d1-backup-"));
-const exportPath = join(temporaryRoot, "preview-export.sql");
+const target = process.argv[2] || "preview";
+assert.ok(["preview", "production"].includes(target), "Target must be preview or production.");
+const production = target === "production";
+const database = production ? "yx-art-studio-commerce" : "yx-art-studio-commerce-preview";
+const configPath = resolve(root, production ? "wrangler.jsonc" : "wrangler.preview.jsonc");
+const temporaryRoot = await mkdtemp(join(tmpdir(), `yx-${target}-d1-backup-`));
+const exportPath = join(temporaryRoot, `${target}-export.sql`);
 const countSql = `
   SELECT
     (SELECT COUNT(*) FROM artworks) AS artworks,
@@ -88,6 +91,7 @@ try {
 
   console.log(JSON.stringify({
     verified: true,
+    target,
     exportBytes: exported.size,
     counts: remote,
     temporaryExportRemoved: true,
