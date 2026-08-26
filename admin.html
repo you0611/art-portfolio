@@ -139,7 +139,16 @@
               <button class="secondary-button" type="button" id="resetWorkForm" data-i18n="newWork">新增作品</button>
             </div>
           </form>
-          <div class="admin-list" id="workAdminList"></div>
+          <div class="admin-work-side">
+            <section class="media-integrity-panel" id="mediaIntegrityPanel" data-state="idle" aria-labelledby="mediaIntegrityTitle">
+              <h3 id="mediaIntegrityTitle" data-i18n="mediaIntegrityTitle">图片一致性</h3>
+              <p class="form-note" data-i18n="mediaIntegrityHint">只读检查数据库记录与私有图片存储，不会删除或修改任何内容。</p>
+              <p class="media-integrity-status" id="mediaIntegrityStatus" data-i18n="mediaIntegrityIdle" aria-live="polite">尚未检查。</p>
+              <ul class="media-integrity-issues" id="mediaIntegrityIssues" hidden></ul>
+              <button class="secondary-button" id="checkMediaIntegrity" type="button" data-i18n="checkMediaIntegrity">检查图片一致性</button>
+            </section>
+            <div class="admin-list" id="workAdminList"></div>
+          </div>
         </div>
 
         <!-- 服务端商务咨询与议价 -->

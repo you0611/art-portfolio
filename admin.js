@@ -10,6 +10,8 @@ let selectedOrderId = "";
 let adminContentProfile = null;
 let adminContentEntries = [];
 let selectedContentEntryId = "";
+let mediaIntegrityReport = null;
+let mediaIntegrityFailed = false;
 const REQUEST_TIMEOUT_MS = 15000;
 const PROFILE_FORM_FIELDS = [
   "artistNameZh", "artistNameEn", "artistBioZh", "artistBioEn",
@@ -83,6 +85,52 @@ function mediaSummary(work) {
     .replace("{width}", work.mediaWidth || "-")
     .replace("{height}", work.mediaHeight || "-")
     .replace("{size}", formatMediaBytes(work.mediaByteSize));
+}
+
+function replaceTokens(template, values) {
+  return Object.entries(values).reduce(
+    (text, [key, value]) => text.replace(`{${key}}`, String(value)),
+    template,
+  );
+}
+
+function renderMediaIntegrity() {
+  const panel = byId("mediaIntegrityPanel");
+  const status = byId("mediaIntegrityStatus");
+  const issues = byId("mediaIntegrityIssues");
+  issues.replaceChildren();
+
+  if (mediaIntegrityFailed) {
+    panel.dataset.state = "error";
+    status.textContent = t("mediaIntegrityFailed");
+    issues.hidden = true;
+    return;
+  }
+  if (!mediaIntegrityReport) {
+    panel.dataset.state = "idle";
+    status.textContent = t("mediaIntegrityIdle");
+    issues.hidden = true;
+    return;
+  }
+
+  const categories = [
+    ["mediaIssueMissing", mediaIntegrityReport.issues?.missingObjects?.length || 0],
+    ["mediaIssueOrphan", mediaIntegrityReport.issues?.orphanObjects?.length || 0],
+    ["mediaIssueUnlinked", mediaIntegrityReport.issues?.unlinkedActiveMedia?.length || 0],
+    ["mediaIssueInvalidReference", mediaIntegrityReport.issues?.invalidPrimaryReferences?.length || 0],
+  ].filter(([, count]) => count > 0);
+
+  panel.dataset.state = mediaIntegrityReport.healthy ? "healthy" : "issues";
+  status.textContent = mediaIntegrityReport.healthy
+    ? replaceTokens(t("mediaIntegrityHealthy"), {
+      database: mediaIntegrityReport.totals?.databaseAssets || 0,
+      bucket: mediaIntegrityReport.totals?.bucketObjects || 0,
+    })
+    : replaceTokens(t("mediaIntegrityIssues"), { count: categories.length });
+  for (const [key, count] of categories) {
+    issues.append(textElement("li", replaceTokens(t(key), { count })));
+  }
+  issues.hidden = categories.length === 0;
 }
 
 function textElement(tag, text, className = "") {
@@ -653,6 +701,23 @@ byId("workForm").addEventListener("submit", async (event) => {
 
 byId("resetWorkForm").addEventListener("click", resetWorkForm);
 byId("reloadWorks").addEventListener("click", loadAdminWorks);
+byId("checkMediaIntegrity").addEventListener("click", async () => {
+  const button = byId("checkMediaIntegrity");
+  button.disabled = true;
+  mediaIntegrityFailed = false;
+  byId("mediaIntegrityPanel").dataset.state = "loading";
+  byId("mediaIntegrityStatus").textContent = t("mediaIntegrityChecking");
+  byId("mediaIntegrityIssues").hidden = true;
+  try {
+    mediaIntegrityReport = await requestJson("/api/admin/media-integrity");
+  } catch {
+    mediaIntegrityReport = null;
+    mediaIntegrityFailed = true;
+  } finally {
+    renderMediaIntegrity();
+    button.disabled = false;
+  }
+});
 byId("mediaFile").addEventListener("change", () => {
   byId("uploadMedia").disabled = !byId("workId").value || !byId("mediaFile").files?.length;
 });
@@ -1030,6 +1095,7 @@ byId("languageToggle").addEventListener("click", () => {
   renderEmailOutbox();
   renderContentEntries();
   fillContentProfileForm();
+  renderMediaIntegrity();
   const selectedEntry = adminContentEntries.find((entry) => entry.id === selectedContentEntryId);
   if (selectedEntry) fillContentEntryForm(selectedEntry, { scroll: false });
 });

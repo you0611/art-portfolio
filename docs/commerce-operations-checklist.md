@@ -26,8 +26,10 @@
 - [ ] 需要回退时使用“恢复上一张”，不要直接修改 D1 或删除 R2 对象。
 - [ ] 恢复按钮不可用表示没有当前替换对应的上一版；先核对版本和审计，不要强行拼接对象键。
 - [ ] 定期比对 D1 active/archived 元数据和私有 R2 对象；任何清理必须先生成精确白名单，不能按目录批量删除。
+- [x] 后台已提供“检查图片一致性”只读入口；发现异常时先记录精确对象，再单独确认处理，检查本身不删除或修复。
 - [x] Preview 使用独立私有桶 `yx-art-studio-media-preview` 并核对 `MEDIA` binding；没有启用公开域名。Production 仍须另建独立桶，不得复用 Preview。
 - [ ] 每月查看 R2 与账户用量；Preview 应用上限为 1 GiB / 200 对象，但 Cloudflare 预算提醒不是硬停机上限。
+- [x] 2026-08-26 首次用量核对：本周期 `$0.00`、无可计费用量，A 类操作 6、B 类操作 16；R2 精确检查为 0 对象、0 B。
 
 ## 本地导出与恢复演练
 
@@ -41,6 +43,14 @@ npm run db:recovery:fixture
 
 该脚本在系统临时目录中创建两个隔离的 Wrangler 本地状态：迁移源数据库、写入非真实 fixture、导出、恢复到第二个数据库，并核对作品/订单/通知/邮件队列、媒体元数据与修订、库存唯一索引和咨询幂等约束；结束后自动删除临时目录。它只验证 D1，R2 图片对象仍需独立清单和备份；也不代表 Preview 或 Production 的真实备份已经完成。
 
+明确获准核对 Preview 后，可运行：
+
+```powershell
+npm run db:recovery:preview
+```
+
+该命令固定只读导出 `yx-art-studio-commerce-preview`，在系统临时目录恢复到隔离的本地 D1，核对非敏感计数、库存唯一索引和邮件触发器后自动删除导出。它不接受 production 目标参数，也不打印客户字段。
+
 ```powershell
 # 先确认命令版本与目标，再执行；这里的文件名只是示例，不在本阶段自动创建。
 npx wrangler d1 export yx-art-studio-commerce --local --output .\private-backup\commerce-local.sql
@@ -50,7 +60,8 @@ npx wrangler d1 execute yx-art-studio-commerce --local --file .\private-backup\c
 - [ ] 导出前确认当前是 local、preview 还是 production；三者不可混用。
 - [ ] 恢复演练使用隔离数据库或可丢弃的本地数据库，不直接覆盖正式数据。
 - [x] 隔离 fixture 恢复后核对作品数量、订单、事件、邮件队列、唯一库存占用索引和咨询幂等约束。
-- [ ] Preview/Production 恢复后核对 migration、作品数量、订单状态、跟进字段、事件记录和唯一库存占用约束。
+- [x] Preview D1 已完成临时导出与隔离恢复，作品、订单、事件、邮件队列、内容、媒体计数、库存唯一索引和邮件触发器一致；没有覆盖远端数据库。
+- [ ] Production 恢复后核对 migration、作品数量、订单状态、跟进字段、事件记录和唯一库存占用约束。
 - [ ] 演练结束后删除含客户资料的临时导出，并确认没有进入构建产物或 Git 状态。
 
 ## Preview 前置验收
@@ -66,3 +77,5 @@ npx wrangler d1 execute yx-art-studio-commerce --local --file .\private-backup\c
 - [x] Phase 5D 已创建并绑定私有 Preview R2，应用 `0006_stage5_media.sql`，完成后台上传、公开画廊读取、恢复与审计验收。
 - [x] Phase 5D 验收发现并修复公开画廊未读取 `/api/artworks` 的问题；部署提交为 `49258d6`。
 - [x] Phase 5D 测试对象、媒体元数据、修订和两条媒体审计均按精确 ID 清理；`guiquilaixi` 回到 v5 静态图基线，媒体相关计数为 0。
+- [x] Phase 5E 部署只读媒体一致性检查并实测：D1 媒体 0、R2 对象 0，四类异常均为 0；未执行任何自动删除。
+- [x] Phase 5E 完成 Preview D1 临时导出/隔离恢复与首轮 R2 账单用量核对；Production、DNS、支付、真实邮件和真实客户数据未触碰。

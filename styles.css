@@ -1260,6 +1260,64 @@ label span {
   opacity: 0.52;
 }
 
+.admin-work-side {
+  display: grid;
+  min-width: 0;
+  gap: 18px;
+}
+
+.media-integrity-panel {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  padding: 20px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+}
+
+.media-integrity-panel h3,
+.media-integrity-status {
+  margin: 0;
+}
+
+.media-integrity-panel h3 {
+  font-size: 16px;
+}
+
+.media-integrity-status {
+  overflow-wrap: anywhere;
+  color: var(--ink);
+  line-height: 1.65;
+}
+
+.media-integrity-panel[data-state="healthy"] .media-integrity-status {
+  color: var(--olive);
+}
+
+.media-integrity-panel[data-state="issues"] .media-integrity-status,
+.media-integrity-panel[data-state="error"] .media-integrity-status {
+  color: var(--accent);
+}
+
+.media-integrity-issues {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding-inline-start: 20px;
+  overflow-wrap: anywhere;
+  color: var(--accent);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.media-integrity-issues[hidden] {
+  display: none;
+}
+
+.media-integrity-panel .secondary-button {
+  justify-self: start;
+}
+
 .inquiry-form select:disabled,
 .inquiry-form button:disabled {
   cursor: not-allowed;

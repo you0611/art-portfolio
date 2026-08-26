@@ -9,7 +9,7 @@
 - 作品详情：标题、媒介、尺寸、年份、价格或"价格请咨询"、状态、简介、收藏咨询入口。
 - 艺术家板块：肖像、简介、展览时间线。
 - 收藏咨询：提交到本地服务端，生成咨询编号并进入议价流程。
-- 管理区：作品编辑、作品主图、内容资料和商务咨询已迁移到服务端 API；可维护作品图片、恢复上一张、查看咨询、发送报价并占用/释放作品。
+- 管理区：作品编辑、作品主图、内容资料和商务咨询已迁移到服务端 API；可维护作品图片、恢复上一张、执行只读图片一致性检查、查看咨询、发送报价并占用/释放作品。
 - 旧咨询记录仍是明确标注的当前浏览器本地功能，不会自动迁移。
 
 ## 重要说明
@@ -27,9 +27,13 @@
 ```powershell
 npm install
 npm run check
+# 仅在明确核对 Preview 时运行；导出只进入系统临时目录并在隔离恢复后删除
+npm run db:recovery:preview
 ```
 
 独立 Preview 配置使用 `wrangler.preview.jsonc`，只绑定 `yx-art-studio-commerce-preview` 与私有桶 `yx-art-studio-media-preview`。门禁密码与管理员邮箱是 Cloudflare Pages Secret，不写入仓库；正式 `wrangler.jsonc` 不启用门禁。
+
+Phase 5E 已增加受管理员身份保护的 `/api/admin/media-integrity` 与后台“检查图片一致性”入口。检查只比较 D1 媒体元数据、作品主图引用和私有 R2 对象，不会自动删除或修改任何内容。
 
 ## 图片素材
 

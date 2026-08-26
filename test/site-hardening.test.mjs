@@ -84,6 +84,19 @@ test("admin errors distinguish network, timeout, and email outbox failure", () =
   assert.match(common, /emailOutboxLoadFailed:/);
 });
 
+test("admin exposes a read-only media integrity check with recoverable states", () => {
+  const admin = read("admin.js");
+  const adminPage = read("admin.html");
+  const common = read("common.js");
+
+  assert.match(adminPage, /id="checkMediaIntegrity"/);
+  assert.match(adminPage, /aria-live="polite"/);
+  assert.match(admin, /requestJson\("\/api\/admin\/media-integrity"\)/);
+  assert.match(admin, /mediaIntegrityReport\.healthy/);
+  assert.match(common, /mediaIntegrityHealthy:/);
+  assert.match(common, /mediaIntegrityFailed:/);
+});
+
 test("mobile controls and hero keep a compact touch-safe layout", () => {
   const styles = read("styles.css");
 

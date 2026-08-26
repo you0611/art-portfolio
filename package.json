@@ -9,6 +9,7 @@
     "gmail:authorize": "node scripts/gmail-oauth.mjs",
     "test": "node --test",
     "db:recovery:fixture": "node scripts/verify-d1-recovery.mjs",
+    "db:recovery:preview": "node scripts/verify-preview-d1-backup.mjs",
     "db:migrate:local": "wrangler d1 migrations apply yx-art-studio-commerce --local",
     "db:verify:local": "wrangler d1 execute yx-art-studio-commerce --local --command=\"SELECT content_status, sale_status, COUNT(*) AS count FROM artworks GROUP BY content_status, sale_status ORDER BY sale_status; SELECT 'profile' AS content_type, COUNT(*) AS count FROM site_profiles UNION ALL SELECT kind AS content_type, COUNT(*) AS count FROM site_entries GROUP BY kind ORDER BY content_type; SELECT (SELECT COUNT(*) FROM media_assets) AS media_assets, (SELECT COUNT(*) FROM artwork_media_revisions) AS media_revisions, (SELECT COUNT(*) FROM artworks WHERE primary_media_id IS NOT NULL) AS media_linked_artworks\"",
     "check": "npm run test && npm run build && npm run db:migrate:local && npm run db:verify:local && npm run db:recovery:fixture"
