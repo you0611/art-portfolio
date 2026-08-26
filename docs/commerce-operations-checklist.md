@@ -79,3 +79,4 @@ npx wrangler d1 execute yx-art-studio-commerce --local --file .\private-backup\c
 - [x] Phase 5D 测试对象、媒体元数据、修订和两条媒体审计均按精确 ID 清理；`guiquilaixi` 回到 v5 静态图基线，媒体相关计数为 0。
 - [x] Phase 5E 部署只读媒体一致性检查并实测：D1 媒体 0、R2 对象 0，四类异常均为 0；未执行任何自动删除。
 - [x] Phase 5E 完成 Preview D1 临时导出/隔离恢复与首轮 R2 账单用量核对；Production、DNS、支付、真实邮件和真实客户数据未触碰。
+- [x] Phase 5E 当前受保护部署为 `a344fe71`，Source `29086e4`；后台检查入口存在，最终未授权 API 返回 401 且不缓存。

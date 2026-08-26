@@ -184,7 +184,7 @@
 - Preview 配置：`EMAIL_MODE=local-fake`、`PREVIEW_GATE_ENABLED=true`；`PREVIEW_GATE_PASSWORD` 与 `ADMIN_EMAIL` 由 Pages Secret 提供，不记录值。
 - 未登录页面/API 与错误密码返回 401；成功登录后健康检查和后台会话返回 200。门禁 Cookie 有效期 8 小时，使用 `HttpOnly`、`Secure`、`SameSite=Strict`。
 - Preview 的 `robots.txt` 禁止全站抓取，并附加 `X-Robots-Tag: noindex, nofollow, noarchive`。正式域名、DNS、生产分支和正式 Pages 项目未修改。
-- 旧的无门禁部署 `ccb1f7be-d06c-4f7a-8235-1f9f5f4511e0` 已删除并验证为 404；当前受保护部署为 `7d05fcda-98aa-4d75-bb76-b021735b45f9`，对应提交 `49258d6`。Preview 密码可通过已登录的 Cloudflare CLI 直接覆盖重置，不依赖知道旧值。
+- 旧的无门禁部署 `ccb1f7be-d06c-4f7a-8235-1f9f5f4511e0` 已删除并验证为 404；当前受保护部署为 `a344fe71`，对应提交 `29086e4`。Preview 密码已在验收后再次随机轮换，可通过已登录的 Cloudflare CLI 直接覆盖重置，不依赖知道旧值。
 - 回滚门禁需要重新部署；不得仅关闭 `PREVIEW_GATE_ENABLED` 后继续公开使用。删除 Preview Pages 或 D1 是独立的破坏性操作，必须再次确认精确资源。
 - 阶段 5A（运营能力）：本地和独立 Preview 验收已完成；通知保持 `local-fake`，未发送真实邮件。
 - 阶段 4（支付）：未开始。
