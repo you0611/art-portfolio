@@ -115,6 +115,13 @@ test("admin artwork management uses major currency units and bounded pagination"
   assert.doesNotMatch(common, /报价金额（分）/);
 });
 
+test("public pages bust the expanded catalog script cache", () => {
+  for (const page of ["gallery.html", "works.html", "activities.html"]) {
+    assert.match(read(page), /common\.js\?v=20260828-catalog/);
+  }
+  assert.match(read("gallery.html"), /app\.js\?v=20260828-catalog/);
+});
+
 test("mobile controls and hero keep a compact touch-safe layout", () => {
   const styles = read("styles.css");
 
