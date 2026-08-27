@@ -155,6 +155,17 @@ test("PATCH uses optimistic locking and writes one atomic audit record", async (
   );
 });
 
+test("artworks without an explicit series can keep category empty", async () => {
+  const db = makeD1();
+  const response = await onArtworkById(
+    contextFor(patchRequest({ version: 1, category: "" }), db),
+  );
+  assert.equal(response.status, 200);
+  const body = await response.json();
+  assert.equal(body.artwork.category, "");
+  assert.equal(body.artwork.version, 2);
+});
+
 test("invalid artwork patches are rejected without a success audit", async () => {
   const cases = [
     [{ version: 1, unknownField: "nope" }, 400],

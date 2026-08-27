@@ -97,6 +97,24 @@ test("admin exposes a read-only media integrity check with recoverable states", 
   assert.match(common, /mediaIntegrityFailed:/);
 });
 
+test("admin artwork management uses major currency units and bounded pagination", () => {
+  const admin = read("admin.js");
+  const adminPage = read("admin.html");
+  const common = read("common.js");
+
+  assert.match(adminPage, /id="workSearch"/);
+  assert.match(adminPage, /id="workCategoryFilter"/);
+  assert.match(adminPage, /id="workStatusFilter"/);
+  assert.match(adminPage, /id="previousWorkPage"/);
+  assert.match(adminPage, /id="nextWorkPage"/);
+  assert.match(admin, /WORKS_PER_PAGE = 10/);
+  assert.match(admin, /amountFromMinor/);
+  assert.match(admin, /amountToMinor/);
+  assert.match(admin, /formatMoneyMinor/);
+  assert.match(common, /议价金额（人民币元）/);
+  assert.doesNotMatch(common, /报价金额（分）/);
+});
+
 test("mobile controls and hero keep a compact touch-safe layout", () => {
   const styles = read("styles.css");
 

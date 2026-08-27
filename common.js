@@ -54,7 +54,15 @@ const translations = {
     medium: "媒介",
     size: "尺寸",
     year: "年份",
-    price: "议价金额（分）",
+    price: "议价金额（人民币元）",
+    workListTitle: "作品列表",
+    workSearchPlaceholder: "搜索作品名称、系列或年份",
+    allWorkSeries: "全部系列",
+    allWorkStatuses: "全部销售状态",
+    workResultCount: "共 {count} 件",
+    workPageStatus: "第 {page} / {pages} 页",
+    previousPage: "上一页",
+    nextPage: "下一页",
     currency: "币种",
     status: "销售状态",
     contentStatus: "展示状态",
@@ -169,7 +177,7 @@ const translations = {
     selectNextOrderStatus: "请选择下一阶段",
     cancelledOrderReadonly: "已取消咨询仅可查看，不能恢复或继续推进。",
     orderStatusInvalid: "这个阶段转换不符合当前流程，请选择允许的下一阶段。",
-    offerAmount: "报价金额（分）",
+    offerAmount: "报价金额（人民币元）",
     offerMessage: "报价说明",
     sendOffer: "发送报价",
     holdOffer: "接受哪一份报价",
@@ -301,7 +309,15 @@ const translations = {
     medium: "Medium",
     size: "Size",
     year: "Year",
-    price: "Negotiation amount (minor units)",
+    price: "Negotiation amount (CNY yuan)",
+    workListTitle: "Artwork list",
+    workSearchPlaceholder: "Search title, series, or year",
+    allWorkSeries: "All series",
+    allWorkStatuses: "All sale statuses",
+    workResultCount: "{count} works",
+    workPageStatus: "Page {page} of {pages}",
+    previousPage: "Previous",
+    nextPage: "Next",
     currency: "Currency",
     status: "Sale status",
     contentStatus: "Content status",
@@ -416,7 +432,7 @@ const translations = {
     selectNextOrderStatus: "Select the next stage",
     cancelledOrderReadonly: "Cancelled inquiries are view-only and cannot be reopened or advanced.",
     orderStatusInvalid: "That stage transition is not allowed from the current stage.",
-    offerAmount: "Offer amount (minor units)",
+    offerAmount: "Offer amount (CNY yuan)",
     offerMessage: "Offer note",
     sendOffer: "Send offer",
     holdOffer: "Offer to accept",
@@ -789,12 +805,14 @@ function applyServerArtworks(payload) {
     const current = currentById.get(artwork?.id);
     const image = typeof artwork?.image === "string" ? artwork.image : "";
     if (
-      !current ||
       !["available", "held", "sold", "not_for_sale"].includes(artwork.saleStatus) ||
       !/^\/(?:api\/media\/media-[0-9a-f-]{36}|assets\/[A-Za-z0-9][A-Za-z0-9._/-]*)$/.test(image)
     ) return false;
     nextWorks.push({
-      ...current,
+      id: artwork.id,
+      price: "",
+      hidePrice: true,
+      ...(current || {}),
       titleZh: artwork.titleZh,
       titleEn: artwork.titleEn,
       category: artwork.category,

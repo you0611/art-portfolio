@@ -188,6 +188,8 @@ export async function parseArtworkPatch(request) {
         patch[field] = requiredString(field, value, 200);
         break;
       case "category":
+        patch[field] = textString(field, value, 120);
+        break;
       case "medium":
       case "dimensions":
         patch[field] = requiredString(field, value, 120);

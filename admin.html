@@ -9,7 +9,7 @@
       name="description"
       content="游祥龙艺术工作室管理后台 — 作品管理、艺术家资料、人员与咨询记录维护。"
     />
-    <link rel="stylesheet" href="styles.css?v=20260825-media" />
+    <link rel="stylesheet" href="styles.css?v=20260827-admin-list" />
   </head>
   <body>
     <header class="site-header">
@@ -81,7 +81,7 @@
               </label>
               <label>
                 <span data-i18n="price">价格</span>
-                <input id="price" type="number" min="0" step="1" />
+                <input id="price" type="number" min="0" step="0.01" inputmode="decimal" />
               </label>
               <label>
                 <span data-i18n="currency">币种</span>
@@ -140,6 +140,32 @@
             </div>
           </form>
           <div class="admin-work-side">
+            <section class="work-browser" aria-labelledby="workListTitle">
+              <div class="work-browser-heading">
+                <h3 id="workListTitle" data-i18n="workListTitle">作品列表</h3>
+                <span id="workResultCount" aria-live="polite"></span>
+              </div>
+              <div class="work-admin-filters">
+                <label>
+                  <span class="sr-only" data-i18n="workSearchPlaceholder">搜索作品名称、系列或年份</span>
+                  <input id="workSearch" type="search" data-i18n-placeholder="workSearchPlaceholder" />
+                </label>
+                <label>
+                  <span class="sr-only" data-i18n="allWorkSeries">全部系列</span>
+                  <select id="workCategoryFilter" aria-label="系列筛选"></select>
+                </label>
+                <label>
+                  <span class="sr-only" data-i18n="allWorkStatuses">全部销售状态</span>
+                  <select id="workStatusFilter" aria-label="销售状态筛选"></select>
+                </label>
+              </div>
+              <div class="admin-list" id="workAdminList"></div>
+              <nav class="work-pagination" aria-label="作品列表分页">
+                <button class="secondary-button" id="previousWorkPage" type="button" data-i18n="previousPage">上一页</button>
+                <span id="workPageStatus" aria-live="polite"></span>
+                <button class="secondary-button" id="nextWorkPage" type="button" data-i18n="nextPage">下一页</button>
+              </nav>
+            </section>
             <section class="media-integrity-panel" id="mediaIntegrityPanel" data-state="idle" aria-labelledby="mediaIntegrityTitle">
               <h3 id="mediaIntegrityTitle" data-i18n="mediaIntegrityTitle">图片一致性</h3>
               <p class="form-note" data-i18n="mediaIntegrityHint">只读检查数据库记录与私有图片存储，不会删除或修改任何内容。</p>
@@ -147,7 +173,6 @@
               <ul class="media-integrity-issues" id="mediaIntegrityIssues" hidden></ul>
               <button class="secondary-button" id="checkMediaIntegrity" type="button" data-i18n="checkMediaIntegrity">检查图片一致性</button>
             </section>
-            <div class="admin-list" id="workAdminList"></div>
           </div>
         </div>
 
@@ -183,7 +208,7 @@
             <form class="admin-form" id="offerForm" hidden>
               <label>
                 <span data-i18n="offerAmount">报价金额（分）</span>
-                <input id="orderOfferAmount" type="number" min="0" step="1" required />
+                <input id="orderOfferAmount" type="number" min="0" step="0.01" inputmode="decimal" required />
               </label>
               <label>
                 <span data-i18n="currency">币种</span>
@@ -323,7 +348,7 @@
       <a href="index.html" data-i18n="footerAdmin">返回首页</a>
     </footer>
 
-    <script src="common.js?v=20260825-media"></script>
-    <script src="admin.js?v=20260825-media"></script>
+    <script src="common.js?v=20260827-admin-list"></script>
+    <script src="admin.js?v=20260827-admin-list"></script>
   </body>
 </html>

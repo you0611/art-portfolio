@@ -12,6 +12,8 @@ let adminContentEntries = [];
 let selectedContentEntryId = "";
 let mediaIntegrityReport = null;
 let mediaIntegrityFailed = false;
+let workListPage = 1;
+const WORKS_PER_PAGE = 10;
 const REQUEST_TIMEOUT_MS = 15000;
 const PROFILE_FORM_FIELDS = [
   "artistNameZh", "artistNameEn", "artistBioZh", "artistBioEn",
@@ -140,6 +142,70 @@ function textElement(tag, text, className = "") {
   return element;
 }
 
+function currencyMinorFactor(currency) {
+  try {
+    const digits = new Intl.NumberFormat("en", {
+      style: "currency",
+      currency: String(currency || "CNY").toUpperCase(),
+    }).resolvedOptions().maximumFractionDigits;
+    return 10 ** digits;
+  } catch {
+    return 100;
+  }
+}
+
+function amountFromMinor(amountMinor, currency) {
+  if (amountMinor === null || amountMinor === undefined || amountMinor === "") return "";
+  return Number(amountMinor) / currencyMinorFactor(currency);
+}
+
+function amountToMinor(amount, currency) {
+  if (amount === "") return null;
+  return Math.round(Number(amount) * currencyMinorFactor(currency));
+}
+
+function formatMoneyMinor(amountMinor, currency = "CNY") {
+  if (!Number.isFinite(Number(amountMinor))) return "-";
+  const normalizedCurrency = String(currency || "CNY").toUpperCase();
+  return new Intl.NumberFormat(state.language === "zh" ? "zh-CN" : "en", {
+    style: "currency",
+    currency: normalizedCurrency,
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  }).format(amountFromMinor(amountMinor, normalizedCurrency));
+}
+
+function syncWorkFilterOptions() {
+  const categoryFilter = byId("workCategoryFilter");
+  const statusFilter = byId("workStatusFilter");
+  const selectedCategory = categoryFilter.value;
+  const selectedStatus = statusFilter.value;
+  const categories = [...new Set(adminWorks.map((work) => work.category).filter(Boolean))]
+    .sort((left, right) => left.localeCompare(right, state.language === "zh" ? "zh-CN" : "en"));
+  categoryFilter.replaceChildren(
+    new Option(t("allWorkSeries"), "all"),
+    ...categories.map((category) => new Option(category, category)),
+  );
+  statusFilter.replaceChildren(
+    new Option(t("allWorkStatuses"), "all"),
+    ...["available", "sold", "not_for_sale"].map((status) => new Option(t(status), status)),
+  );
+  categoryFilter.value = categories.includes(selectedCategory) ? selectedCategory : "all";
+  statusFilter.value = ["available", "sold", "not_for_sale"].includes(selectedStatus) ? selectedStatus : "all";
+}
+
+function filteredAdminWorks() {
+  const query = byId("workSearch").value.trim().toLocaleLowerCase();
+  const category = byId("workCategoryFilter").value || "all";
+  const status = byId("workStatusFilter").value || "all";
+  return adminWorks.filter((work) => {
+    const haystack = `${work.titleZh} ${work.titleEn} ${work.category} ${work.year}`.toLocaleLowerCase();
+    return (!query || haystack.includes(query))
+      && (category === "all" || work.category === category)
+      && (status === "all" || work.saleStatus === status);
+  });
+}
+
 function renderStatusOptions() {
   byId("status").replaceChildren(
     ...["available", "sold", "not_for_sale"].map((value) => new Option(t(value), value)),
@@ -160,11 +226,28 @@ function renderStatusOptions() {
 function renderAdminWorks() {
   const list = byId("workAdminList");
   list.replaceChildren();
+  syncWorkFilterOptions();
   if (!adminWorks.length) {
     list.append(textElement("div", t("empty"), "empty-state"));
+    byId("workResultCount").textContent = replaceTokens(t("workResultCount"), { count: 0 });
+    byId("workPageStatus").textContent = replaceTokens(t("workPageStatus"), { page: 1, pages: 1 });
+    byId("previousWorkPage").disabled = true;
+    byId("nextWorkPage").disabled = true;
     return;
   }
-  for (const work of adminWorks) {
+  const filteredWorks = filteredAdminWorks();
+  const totalPages = Math.max(1, Math.ceil(filteredWorks.length / WORKS_PER_PAGE));
+  workListPage = Math.min(Math.max(workListPage, 1), totalPages);
+  byId("workResultCount").textContent = replaceTokens(t("workResultCount"), { count: filteredWorks.length });
+  byId("workPageStatus").textContent = replaceTokens(t("workPageStatus"), { page: workListPage, pages: totalPages });
+  byId("previousWorkPage").disabled = workListPage <= 1;
+  byId("nextWorkPage").disabled = workListPage >= totalPages;
+  if (!filteredWorks.length) {
+    list.append(textElement("div", t("galleryEmpty"), "empty-state"));
+    return;
+  }
+  const start = (workListPage - 1) * WORKS_PER_PAGE;
+  for (const work of filteredWorks.slice(start, start + WORKS_PER_PAGE)) {
     const item = document.createElement("div");
     item.className = "admin-item";
     const image = document.createElement("img");
@@ -175,7 +258,7 @@ function renderAdminWorks() {
       textElement("h3", work.titleZh),
       textElement(
         "p",
-        `${work.category || "-"} · ${work.dimensions || "-"} · ${work.year || "-"} · ${t(work.saleStatus)}`,
+        [work.category, work.dimensions, work.year, t(work.saleStatus)].filter(Boolean).join(" · "),
       ),
       textElement("p", `v${work.version}`, "form-note"),
     );
@@ -273,7 +356,7 @@ function renderOrderTools() {
   const offerSelect = byId("holdOffer");
   offerSelect.replaceChildren(
     ...pendingOffers.map((offer) => new Option(
-      `${t(offer.proposedBy === "admin" ? "adminOffer" : "customerOffer")} · ${offer.amountMinor} ${offer.currency}`,
+      `${t(offer.proposedBy === "admin" ? "adminOffer" : "customerOffer")} · ${formatMoneyMinor(offer.amountMinor, offer.currency)}`,
       offer.id,
     )),
   );
@@ -352,7 +435,7 @@ function renderAdminOrders() {
     if (order.latestOffer) {
       copy.append(textElement(
         "p",
-        `${t(order.latestOffer.proposedBy === "admin" ? "adminOffer" : "customerOffer")} · ${order.latestOffer.amountMinor} ${order.latestOffer.currency} · ${t(order.latestOffer.status)}`,
+        `${t(order.latestOffer.proposedBy === "admin" ? "adminOffer" : "customerOffer")} · ${formatMoneyMinor(order.latestOffer.amountMinor, order.latestOffer.currency)} · ${t(order.latestOffer.status)}`,
       ));
     }
     const actions = document.createElement("div");
@@ -527,8 +610,8 @@ function fillWorkForm(work) {
   byId("medium").value = work.medium;
   byId("size").value = work.dimensions;
   byId("year").value = work.year;
-  byId("price").value = work.priceMinor ?? "";
   byId("currency").value = work.currency;
+  byId("price").value = amountFromMinor(work.priceMinor, work.currency);
   byId("status").value = work.saleStatus;
   byId("contentStatus").value = work.contentStatus;
   byId("hidePrice").checked = work.priceVisibility === "private_quote";
@@ -560,7 +643,7 @@ function workPatchFromForm() {
     descriptionEn: byId("descriptionEn").value.trim(),
     contentStatus: byId("contentStatus").value,
     saleStatus: byId("status").value,
-    priceMinor: price === "" ? null : Number(price),
+    priceMinor: amountToMinor(price, byId("currency").value),
     currency: byId("currency").value.trim().toUpperCase(),
     priceVisibility: byId("hidePrice").checked ? "private_quote" : "on_request",
     negotiationEnabled: byId("negotiationEnabled").checked,
@@ -701,6 +784,23 @@ byId("workForm").addEventListener("submit", async (event) => {
 
 byId("resetWorkForm").addEventListener("click", resetWorkForm);
 byId("reloadWorks").addEventListener("click", loadAdminWorks);
+for (const id of ["workSearch", "workCategoryFilter", "workStatusFilter"]) {
+  byId(id).addEventListener(id === "workSearch" ? "input" : "change", () => {
+    workListPage = 1;
+    renderAdminWorks();
+  });
+}
+byId("previousWorkPage").addEventListener("click", () => {
+  if (workListPage <= 1) return;
+  workListPage -= 1;
+  renderAdminWorks();
+});
+byId("nextWorkPage").addEventListener("click", () => {
+  const totalPages = Math.max(1, Math.ceil(filteredAdminWorks().length / WORKS_PER_PAGE));
+  if (workListPage >= totalPages) return;
+  workListPage += 1;
+  renderAdminWorks();
+});
 byId("checkMediaIntegrity").addEventListener("click", async () => {
   const button = byId("checkMediaIntegrity");
   button.disabled = true;
@@ -806,7 +906,10 @@ byId("offerForm").addEventListener("submit", async (event) => {
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
         version: order.version,
-        amountMinor: Number(byId("orderOfferAmount").value),
+        amountMinor: amountToMinor(
+          byId("orderOfferAmount").value,
+          byId("orderOfferCurrency").value,
+        ),
         currency: byId("orderOfferCurrency").value.trim().toUpperCase(),
         message: byId("orderOfferMessage").value.trim(),
       }),

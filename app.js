@@ -50,7 +50,7 @@ function renderDetail(workId) {
       <span class="detail-record">${work.year || ""} · ${work.medium || ""}</span>
       <h2>${localText(work, "titleZh", "titleEn")}</h2>
       <dl>
-        <dt>${t("category")}</dt><dd>${work.category || "-"}</dd>
+        ${work.category ? `<dt>${t("category")}</dt><dd>${work.category}</dd>` : ""}
         <dt>${t("medium")}</dt><dd>${work.medium || "-"}</dd>
         <dt>${t("size")}</dt><dd>${work.size || "-"}</dd>
         <dt>${t("year")}</dt><dd>${work.year || "-"}</dd>
