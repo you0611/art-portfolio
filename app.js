@@ -262,12 +262,14 @@ renderAll();
 goToSlide(0);
 startSlideshow();
 
+const requestedWorkId = new URLSearchParams(location.search).get("work");
+
 Promise.all([loadPublicContent(), loadPublicArtworks()]).then((results) => {
   if (!results.some(Boolean)) return;
   renderAll();
-  if (currentDetailId) renderDetail(currentDetailId);
+  if (requestedWorkId) renderDetail(requestedWorkId);
+  else if (currentDetailId) renderDetail(currentDetailId);
   goToSlide(heroIndex);
 });
 
-const requestedWorkId = new URLSearchParams(location.search).get("work");
 if (requestedWorkId) renderDetail(requestedWorkId);
