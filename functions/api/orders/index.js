@@ -11,6 +11,7 @@ import {
   validateIdempotencyKey,
   mapPublicOrder,
 } from "../../_lib/orders.js";
+import { scheduleConfiguredEmailDispatch } from "../../_lib/email.js";
 import { json, methodNotAllowed, serviceUnavailable } from "../../_lib/http.js";
 
 function noStoreJson(data, init = {}) {
@@ -88,6 +89,7 @@ export async function onRequest(context) {
 
     const row = await context.env.DB.prepare(PUBLIC_ORDER_SQL).bind(reference).first();
     if (row) {
+      scheduleConfiguredEmailDispatch(context);
       return noStoreJson({ order: mapPublicOrder(row) }, { status: 201 });
     }
 

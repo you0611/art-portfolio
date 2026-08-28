@@ -151,7 +151,7 @@
 4. 确认要做真实测试时，把本地 `.dev.vars` 的 `EMAIL_MODE` 改为 `gmail`，重启 `npm run dev`，再在后台点击“投递邮件”。
 5. 验收通过后恢复 `EMAIL_MODE=local-fake`；Cloudflare Preview/Production 的 Secret、D1 和 Access 仍需另行授权与验收，本地配置不会自动发布。
 
-真实投递顺序是：新咨询通知 `ADMIN_EMAIL`；管理员报价通知客户咨询中保存的邮箱。每封邮件仍经过 `email_outbox`，失败会保留状态并按尝试次数重试；当前没有自动退信处理。
+真实投递顺序是：新咨询通知 `ADMIN_EMAIL`；管理员报价通知客户咨询中保存的邮箱。Production 设置 `EMAIL_MODE=gmail` 后，新咨询成功入库会通过后台任务自动投递管理员提醒；本地与 Preview 的 `local-fake` 不自动发送。每封邮件仍经过 `email_outbox`，失败会保留状态并按尝试次数重试；当前没有自动退信处理。
 
 ## 上线前仍需完成
 

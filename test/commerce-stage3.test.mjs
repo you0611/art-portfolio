@@ -535,6 +535,79 @@ test("local email outbox routes inquiries and quotes without network delivery", 
   assert.equal(db.database.prepare("SELECT status, provider_message_id FROM email_outbox WHERE id = ?").get(customerEmail).status, "sent");
 });
 
+test("gmail mode schedules a new inquiry email after the order is committed", async () => {
+  const db = makeD1();
+  const scheduled = [];
+  const fetchCalls = [];
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (url) => {
+    fetchCalls.push(String(url));
+    if (String(url).includes("oauth2.googleapis.com/token")) {
+      return new Response(JSON.stringify({ access_token: "fixture-access-token" }), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      });
+    }
+    if (String(url).includes("gmail.googleapis.com/gmail/v1/users/me/messages/send")) {
+      return new Response(JSON.stringify({ id: "gmail-auto-inquiry-fixture" }), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      });
+    }
+    throw new Error(`Unexpected URL: ${url}`);
+  };
+
+  try {
+    const response = await onPublicCreate({
+      request: jsonRequest(
+        "/api/orders",
+        "POST",
+        {
+          artworkId: "guiquilaixi",
+          customerName: "Automatic Email Fixture",
+          customerEmail: "fixture@example.test",
+          customerContact: "+86 13800000000",
+          customerCountryCode: "CN",
+          preferredLanguage: "zh",
+          contactNote: "Automatic Gmail fixture only.",
+          shippingNote: "",
+        },
+        { "idempotency-key": "stage5-auto-email-001" },
+      ),
+      env: {
+        DB: db,
+        EMAIL_MODE: "gmail",
+        ADMIN_EMAIL: "admin@example.test",
+        GMAIL_FROM_EMAIL: "studio@example.test",
+        GMAIL_CLIENT_ID: "fixture-client-id",
+        GMAIL_CLIENT_SECRET: "fixture-client-secret",
+        GMAIL_REFRESH_TOKEN: "fixture-refresh-token",
+      },
+      waitUntil(task) {
+        scheduled.push(task);
+      },
+    });
+
+    assert.equal(response.status, 201);
+    assert.equal(scheduled.length, 1);
+    assert.equal(db.database.prepare("SELECT COUNT(*) AS count FROM orders").get().count, 1);
+    assert.equal(db.database.prepare("SELECT status FROM email_outbox").get().status, "pending");
+
+    await scheduled[0];
+    const delivered = db.database.prepare(
+      "SELECT status, attempt_count, provider_message_id FROM email_outbox",
+    ).get();
+    assert.deepEqual({ ...delivered }, {
+      status: "sent",
+      attempt_count: 1,
+      provider_message_id: "gmail-auto-inquiry-fixture",
+    });
+    assert.equal(fetchCalls.length, 2);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test("Gmail provider exchanges OAuth refresh token and sends encoded MIME without live network", async () => {
   const calls = [];
   const provider = createGmailEmailProvider(

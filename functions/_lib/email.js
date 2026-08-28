@@ -250,6 +250,22 @@ export async function dispatchConfiguredEmails(
   return { mode, result };
 }
 
+export function scheduleConfiguredEmailDispatch(
+  context,
+  { dispatch = dispatchConfiguredEmails } = {},
+) {
+  if (emailDeliveryMode(context?.env) !== "gmail" || typeof context?.waitUntil !== "function") {
+    return false;
+  }
+  const task = Promise.resolve()
+    .then(() => dispatch(context.env.DB, context.env))
+    .catch((error) => {
+      console.error("Background email dispatch failed.", error);
+    });
+  context.waitUntil(task);
+  return true;
+}
+
 export async function dispatchLocalFakeEmails(
   db,
   { adminEmail = "", provider = localFakeEmailProvider, maxAttempts = EMAIL_OUTBOX_MAX_ATTEMPTS } = {},
