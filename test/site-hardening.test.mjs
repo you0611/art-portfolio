@@ -117,9 +117,10 @@ test("admin artwork management uses major currency units and bounded pagination"
 
 test("public pages bust the expanded catalog script cache", () => {
   for (const page of ["gallery.html", "works.html", "activities.html"]) {
-    assert.match(read(page), /common\.js\?v=20260828-catalog/);
+    assert.match(read(page), /styles\.css\?v=20260905-ui-polish/);
+    assert.match(read(page), /common\.js\?v=20260905-ui-polish/);
   }
-  assert.match(read("gallery.html"), /app\.js\?v=20260828-catalog-v2/);
+  assert.match(read("gallery.html"), /app\.js\?v=20260905-ui-polish/);
 });
 
 test("public catalog pages hydrate new server artworks", () => {

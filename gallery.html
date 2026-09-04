@@ -13,7 +13,7 @@
     <meta property="og:image" content="https://youxianglong.com/assets/jiangnan-2024.jpg" />
     <meta property="og:type" content="website" />
     <link rel="canonical" href="https://youxianglong.com/gallery.html" />
-    <link rel="stylesheet" href="styles.css?v=20260810-redesign" />
+    <link rel="stylesheet" href="styles.css?v=20260905-ui-polish" />
   </head>
   <body class="public-site">
     <!--
@@ -54,13 +54,12 @@
         </div>
         <div class="hero-copy">
           <span class="hero-monogram" aria-hidden="true">游</span>
-          <h1 data-i18n="heroTitle">游祥龙</h1>
+          <h1 id="heroWorkHeading" aria-live="polite">江南</h1>
           <p data-i18n="heroText">
             在江南水色与人物叙事之间，记录时间、乡土与人的精神轮廓。
           </p>
           <div class="hero-caption" aria-live="polite">
             <span id="heroCounter">01 / 05</span>
-            <span id="heroWorkTitle">江南</span>
             <span id="heroWorkMeta">布面油画 · 140 × 160 cm · 2024</span>
           </div>
           <div class="hero-links">
@@ -98,8 +97,11 @@
           </div>
         </div>
         <div class="artist-honors">
-          <h3 data-i18n="honorsTitle">展览荣誉</h3>
-          <div class="timeline" id="timeline"></div>
+          <div class="artist-honors-header">
+            <h3 id="honorsTitle" data-i18n="honorsTitle">展览荣誉</h3>
+            <p class="timeline-hint" id="timelineHint" data-i18n="timelineHint">左右滑动查看更多</p>
+          </div>
+          <div class="timeline" id="timeline" tabindex="0" aria-labelledby="honorsTitle timelineHint"></div>
         </div>
       </section>
 
@@ -183,7 +185,7 @@
       </div>
     </footer>
 
-    <script src="common.js?v=20260828-catalog"></script>
-    <script src="app.js?v=20260828-catalog-v2"></script>
+    <script src="common.js?v=20260905-ui-polish"></script>
+    <script src="app.js?v=20260905-ui-polish"></script>
   </body>
 </html>

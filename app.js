@@ -227,7 +227,7 @@ function goToSlide(index) {
     img.alt = localText(work, "titleZh", "titleEn");
     img.style.opacity = 1;
     byId("heroCounter").textContent = `${String(heroIndex + 1).padStart(2, "0")} / ${String(heroSlides.length).padStart(2, "0")}`;
-    byId("heroWorkTitle").textContent = localText(work, "titleZh", "titleEn");
+    byId("heroWorkHeading").textContent = localText(work, "titleZh", "titleEn");
     byId("heroWorkMeta").textContent = `${work.medium} · ${work.size} · ${work.year}`;
   }, 260);
   renderHeroDots();

@@ -457,7 +457,7 @@ dd {
   display: grid;
   grid-template-columns: minmax(0, 2.15fr) minmax(320px, 0.85fr);
   min-height: calc(100svh - 74px);
-  background: var(--ink);
+  background: #d6d8d2;
 }
 
 .hero-stage {
@@ -467,16 +467,18 @@ dd {
   min-width: 0;
   overflow: hidden;
   padding: clamp(28px, 4vw, 64px) clamp(28px, 5vw, 82px) 126px;
-  background: #0c1112;
+  background: #d6d8d2;
 }
 
 .hero-stage > img {
-  width: 100%;
-  height: calc(100svh - 236px);
-  min-height: 420px;
+  width: auto;
+  max-width: 100%;
+  height: auto;
+  max-height: calc(100svh - 236px);
   object-fit: contain;
   opacity: 1;
   filter: saturate(0.92) contrast(1.02);
+  box-shadow: 0 20px 54px rgba(25, 32, 31, 0.16);
   transition: opacity 460ms var(--ease-out), filter 460ms ease;
 }
 
@@ -498,15 +500,9 @@ dd {
   letter-spacing: 0.04em;
 }
 
-#heroWorkTitle {
-  color: var(--ink);
-  font-family: var(--display);
-  font-size: 17px;
-  letter-spacing: 0;
-}
-
 #heroWorkMeta {
-  grid-column: 1 / -1;
+  justify-self: end;
+  text-align: right;
 }
 
 .hero-dots {
@@ -574,6 +570,14 @@ dd {
   font-weight: 500;
   letter-spacing: -0.035em;
   line-height: 0.94;
+}
+
+html[lang="en"] .hero h1 {
+  max-width: 100%;
+  font-size: clamp(2.75rem, 4.5vw, 4.4rem);
+  letter-spacing: -0.04em;
+  overflow-wrap: normal;
+  word-break: normal;
 }
 
 .hero-copy > p:not(.hero-record) {
@@ -693,19 +697,22 @@ dd {
 
 .artist-top {
   display: grid;
-  grid-template-columns: minmax(280px, 0.75fr) minmax(360px, 1.25fr);
-  gap: clamp(42px, 8vw, 120px);
+  grid-template-columns: minmax(240px, 0.58fr) minmax(0, 1.42fr);
+  gap: clamp(36px, 5vw, 84px);
   align-items: start;
 }
 
 .artist-portrait {
   position: sticky;
   top: 104px;
+  justify-self: start;
+  width: min(100%, 390px);
   padding: 18px;
   background: var(--ink);
 }
 
 .artist-portrait img {
+  height: auto;
   aspect-ratio: 4 / 5;
   object-fit: cover;
   filter: saturate(0.78) contrast(1.03);
@@ -716,7 +723,7 @@ dd {
   margin: 0;
   color: #303738;
   font-size: clamp(16px, 1.5vw, 20px);
-  line-height: 2;
+  line-height: 1.85;
 }
 
 .artist-proof {
@@ -763,11 +770,27 @@ dd {
   margin-top: clamp(90px, 12vw, 180px);
 }
 
+.artist-honors-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 24px;
+  align-items: end;
+  margin-bottom: 30px;
+}
+
 .artist-honors h3 {
-  margin: 0 0 30px;
+  margin: 0;
   font-family: var(--display);
   font-size: clamp(1.8rem, 3vw, 3rem);
   font-weight: 500;
+}
+
+.timeline-hint {
+  margin: 0 0 5px;
+  color: var(--muted);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
 }
 
 .timeline {
@@ -781,6 +804,7 @@ dd {
   padding-bottom: 22px;
   border-top: 1px solid var(--ink);
   scroll-snap-type: x proximity;
+  overscroll-behavior-inline: contain;
   scrollbar-color: var(--accent) transparent;
 }
 
@@ -866,6 +890,11 @@ textarea::placeholder {
 
 .toolbar select {
   color-scheme: dark;
+}
+
+.toolbar select option {
+  color: var(--ink);
+  background: var(--paper);
 }
 
 .toolbar input::placeholder {
@@ -1420,13 +1449,16 @@ label span {
 .contact-info-section {
   display: grid;
   grid-template-columns: minmax(280px, 0.8fr) minmax(380px, 1.2fr);
-  gap: clamp(52px, 10vw, 160px);
+  gap: clamp(36px, 6vw, 96px);
+  align-items: center;
+  padding-block: clamp(40px, 4vw, 64px);
   color: var(--white);
   background: var(--ink);
 }
 
 .contact-info-heading h2 {
   max-width: none;
+  font-size: clamp(3rem, 5vw, 5rem);
 }
 
 .contact-info-heading > p:first-child {
@@ -1435,23 +1467,23 @@ label span {
 
 .contact-info-heading > p:last-child {
   max-width: 44ch;
-  margin: 28px 0 0;
+  margin: 16px 0 0;
   color: rgba(247, 247, 242, 0.58);
   font-size: 14px;
-  line-height: 1.9;
+  line-height: 1.7;
 }
 
 .contact-info-grid {
   display: grid;
-  align-content: end;
+  align-content: center;
   border-top: 1px solid var(--white);
 }
 
 .contact-info-card {
   display: grid;
-  grid-template-columns: 120px 1fr;
-  gap: 20px;
-  padding: 24px 0;
+  grid-template-columns: 90px 1fr;
+  gap: 16px;
+  padding: 16px 0;
   border-bottom: 1px solid var(--line-dark);
 }
 
@@ -1467,7 +1499,7 @@ label span {
   margin: 0;
   color: var(--white);
   font-family: var(--display);
-  font-size: clamp(1.1rem, 1.7vw, 1.65rem);
+  font-size: clamp(1rem, 1.35vw, 1.35rem);
   line-height: 1.5;
 }
 
@@ -2015,8 +2047,7 @@ label span {
   }
 
   .hero-stage > img {
-    height: 54svh;
-    min-height: 320px;
+    max-height: 54svh;
   }
 
   .hero-copy {
@@ -2053,7 +2084,8 @@ label span {
   }
 
   .artist-portrait {
-    width: min(560px, 100%);
+    width: min(340px, 72vw);
+    margin-inline: auto;
   }
 
   .toolbar {
@@ -2120,7 +2152,7 @@ label span {
   }
 
   .hero-stage > img {
-    height: 40svh;
+    max-height: 40svh;
   }
 
   .hero-caption {
@@ -2134,12 +2166,8 @@ label span {
     grid-template-columns: auto 1fr;
     gap: 8px 14px;
     margin: 0;
-    color: rgba(247, 247, 242, 0.66);
-    border-color: var(--line-dark);
-  }
-
-  #heroWorkTitle {
-    color: var(--white);
+    color: rgba(17, 23, 25, 0.62);
+    border-color: rgba(17, 23, 25, 0.18);
   }
 
   #heroWorkMeta {
@@ -2183,8 +2211,25 @@ label span {
     font-size: 1.6rem;
   }
 
+  .artist-honors-header {
+    grid-template-columns: 1fr;
+    gap: 10px;
+    align-items: start;
+  }
+
+  .timeline-hint {
+    margin: 0;
+    white-space: normal;
+  }
+
   .artist-top {
     gap: 46px;
+  }
+
+  .artist-portrait {
+    width: min(280px, 78vw);
+    margin-inline: auto;
+    padding: 12px;
   }
 
   .artist-proof a {
