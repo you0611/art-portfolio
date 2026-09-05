@@ -707,8 +707,8 @@ html[lang="en"] .hero h1 {
   top: 104px;
   justify-self: start;
   width: min(100%, 390px);
-  padding: 18px;
-  background: var(--ink);
+  padding: 0;
+  background: transparent;
 }
 
 .artist-portrait img {
@@ -2229,7 +2229,6 @@ label span {
   .artist-portrait {
     width: min(280px, 78vw);
     margin-inline: auto;
-    padding: 12px;
   }
 
   .artist-proof a {
