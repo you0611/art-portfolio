@@ -70,7 +70,9 @@ def main() -> None:
         })
 
     manifest_by_artwork = {item["artworkId"]: item for item in manifest}
-    lines = ["PRAGMA foreign_keys = ON;", "BEGIN TRANSACTION;", ""]
+    # Wrangler's remote D1 file importer provides the atomic batch boundary and
+    # rejects explicit BEGIN/COMMIT statements in uploaded SQL.
+    lines = ["PRAGMA foreign_keys = ON;", ""]
     if removed_ids:
         ids = ", ".join(sql(item) for item in removed_ids)
         lines += [
@@ -153,8 +155,6 @@ def main() -> None:
         "VALUES ('audit-catalog-refresh-20260906', 'catalog-refresh@local', 'replace_public_catalog',",
         "        'catalog', 'public', 'catalog-refresh-20260906',",
         f"        {sql(json.dumps({'published': len(catalog), 'archived': len(removed_ids), 'media': len(manifest)}, ensure_ascii=False))});",
-        "",
-        "COMMIT;",
         "",
     ]
 
