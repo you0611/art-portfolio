@@ -112,7 +112,6 @@ const translations = {
     available: "可咨询",
     held: "暂不可咨询",
     sold: "已收藏",
-    not_for_sale: "状态待确认",
     unconfirmed: "状态待确认",
     imagePending: "图片待补",
     draft: "草稿",
@@ -372,7 +371,6 @@ const translations = {
     available: "Available",
     held: "Temporarily unavailable",
     sold: "Collected",
-    not_for_sale: "Status pending",
     unconfirmed: "Status pending",
     imagePending: "Image pending",
     draft: "Draft",
@@ -849,7 +847,9 @@ function applyServerArtworks(payload) {
       image,
       descriptionZh: artwork.descriptionZh,
       descriptionEn: artwork.descriptionEn,
-      status: artwork.saleStatus,
+      status: artwork.saleStatus === "not_for_sale" && artwork.id.startsWith("refresh-")
+        ? "unconfirmed"
+        : artwork.saleStatus,
     });
   }
   state.works = nextWorks;

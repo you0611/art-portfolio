@@ -118,7 +118,7 @@ test("admin artwork management uses major currency units and bounded pagination"
 test("public pages bust the expanded catalog script cache", () => {
   for (const page of ["gallery.html", "works.html", "activities.html"]) {
     assert.match(read(page), /styles\.css\?v=20260906-material-refresh/);
-    assert.match(read(page), /common\.js\?v=20260906-material-refresh/);
+    assert.match(read(page), /common\.js\?v=20260906-material-refresh-r2/);
   }
   assert.match(read("gallery.html"), /app\.js\?v=20260906-material-refresh/);
 });
@@ -196,8 +196,9 @@ test("catalog-only works stay visibly pending and cannot enter the inquiry flow"
   const common = read("common.js");
   const app = read("app.js");
   const works = read("works.html");
-  assert.match(common, /not_for_sale: "状态待确认"/);
-  assert.match(common, /not_for_sale: "Status pending"/);
+  assert.match(common, /unconfirmed: "状态待确认"/);
+  assert.match(common, /unconfirmed: "Status pending"/);
+  assert.match(common, /artwork\.id\.startsWith\("refresh-"\)/);
   assert.match(app, /\["unconfirmed", "not_for_sale"\]\.includes\(work\.status\)/);
   assert.match(works, /\["unconfirmed", "not_for_sale"\]\.includes\(work\.status\)/);
 });
