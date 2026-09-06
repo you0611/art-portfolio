@@ -191,3 +191,13 @@ test("held inventory uses visitor-facing unavailable copy", () => {
   assert.match(common, /held: "暂不可咨询"/);
   assert.match(common, /held: "Temporarily unavailable"/);
 });
+
+test("catalog-only works stay visibly pending and cannot enter the inquiry flow", () => {
+  const common = read("common.js");
+  const app = read("app.js");
+  const works = read("works.html");
+  assert.match(common, /not_for_sale: "状态待确认"/);
+  assert.match(common, /not_for_sale: "Status pending"/);
+  assert.match(app, /\["unconfirmed", "not_for_sale"\]\.includes\(work\.status\)/);
+  assert.match(works, /\["unconfirmed", "not_for_sale"\]\.includes\(work\.status\)/);
+});

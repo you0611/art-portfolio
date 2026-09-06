@@ -8,9 +8,25 @@ import { onRequest as onAdminMediaRestore } from "../functions/api/admin/artwork
 import { onRequest as onPublicMedia } from "../functions/api/media/[id].js";
 import { onRequest as onPublicArtworks } from "../functions/api/artworks/index.js";
 
-const migrationSql = ["0001_commerce_foundation.sql", "0006_stage5_media.sql"]
+const migrationSql = ["0001_commerce_foundation.sql", "0006_stage5_media.sql", "0007_expand_media_byte_limit.sql"]
   .map((file) => readFileSync(new URL(`../migrations/${file}`, import.meta.url), "utf8"))
   .join("\n");
+
+test("catalog metadata accepts full-resolution lossless files while admin uploads remain capped", () => {
+  const db = makeD1();
+  db.database.prepare(`
+    INSERT INTO media_assets
+      (id, artwork_id, object_key, original_filename, mime_type, byte_size,
+       width, height, sha256, status, created_by)
+    VALUES
+      ('media-catalog-large', 'guiquilaixi', 'artworks/guiquilaixi/media-catalog-large.webp',
+       'catalog.webp', 'image/webp', 31029608, 5680, 5676,
+       '0000000000000000000000000000000000000000000000000000000000000000',
+       'active', 'catalog-refresh')
+  `).run();
+  assert.equal(db.database.prepare("SELECT byte_size FROM media_assets WHERE id = 'media-catalog-large'").get().byte_size, 31029608);
+  assert.match(readFileSync(new URL("../functions/_lib/media.js", import.meta.url), "utf8"), /MAX_MEDIA_BYTES = 10 \* 1024 \* 1024/);
+});
 
 class D1PreparedShim {
   constructor(database, sql, values = []) {

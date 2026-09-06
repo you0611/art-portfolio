@@ -81,6 +81,7 @@ function formatMediaBytes(bytes) {
 }
 
 function mediaSummary(work) {
+  if (!work?.image) return t("mediaMissing");
   if (!work?.mediaId) return t("mediaLegacyActive");
   return t("mediaStoredActive")
     .replace("{name}", work.mediaFilename || "image")
@@ -250,9 +251,13 @@ function renderAdminWorks() {
   for (const work of filteredWorks.slice(start, start + WORKS_PER_PAGE)) {
     const item = document.createElement("div");
     item.className = "admin-item";
-    const image = document.createElement("img");
-    image.src = work.image;
-    image.alt = work.titleZh;
+    const image = work.image
+      ? document.createElement("img")
+      : textElement("div", t("imagePending"), "admin-image-placeholder");
+    if (work.image) {
+      image.src = work.image;
+      image.alt = work.titleZh;
+    }
     const copy = document.createElement("div");
     copy.append(
       textElement("h3", work.titleZh),
@@ -617,7 +622,9 @@ function fillWorkForm(work) {
   byId("hidePrice").checked = work.priceVisibility === "private_quote";
   byId("negotiationEnabled").checked = work.negotiationEnabled;
   byId("image").value = work.image;
-  byId("mediaPreview").src = work.image;
+  byId("mediaPreview").hidden = !work.image;
+  if (work.image) byId("mediaPreview").src = work.image;
+  else byId("mediaPreview").removeAttribute("src");
   byId("mediaPreview").alt = work.titleZh;
   byId("mediaCurrent").textContent = mediaSummary(work);
   byId("mediaFile").value = "";

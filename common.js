@@ -70,6 +70,7 @@ const translations = {
     imagePath: "图片路径",
     mediaManagerTitle: "作品主图",
     mediaLegacyActive: "当前使用项目内静态图片。",
+    mediaMissing: "当前没有作品图片。",
     mediaStoredActive: "当前使用已上传图片：{name} · {width}×{height} · {size}",
     mediaUploadHint: "JPEG、PNG 或 WebP，最大 10 MB；系统会验证真实类型和图片尺寸。旧图不会删除。",
     chooseMedia: "选择新图片",
@@ -111,6 +112,9 @@ const translations = {
     available: "可咨询",
     held: "暂不可咨询",
     sold: "已收藏",
+    not_for_sale: "状态待确认",
+    unconfirmed: "状态待确认",
+    imagePending: "图片待补",
     draft: "草稿",
     private: "不公开",
     priceOnRequest: "价格请咨询",
@@ -326,6 +330,7 @@ const translations = {
     imagePath: "Image path",
     mediaManagerTitle: "Primary artwork image",
     mediaLegacyActive: "The bundled static image is currently active.",
+    mediaMissing: "This artwork does not currently have an image.",
     mediaStoredActive: "Uploaded image: {name} · {width}×{height} · {size}",
     mediaUploadHint: "JPEG, PNG, or WebP, up to 10 MB. File contents and dimensions are verified; the previous image is retained.",
     chooseMedia: "Choose a new image",
@@ -367,6 +372,9 @@ const translations = {
     available: "Available",
     held: "Temporarily unavailable",
     sold: "Collected",
+    not_for_sale: "Status pending",
+    unconfirmed: "Status pending",
+    imagePending: "Image pending",
     draft: "Draft",
     private: "Private",
     priceOnRequest: "Price on request",
@@ -730,6 +738,23 @@ function localText(item, zhKey, enKey) {
   return state.language === "zh" ? item[zhKey] || item[enKey] : item[enKey] || item[zhKey];
 }
 
+function hasArtworkImage(work) {
+  return typeof work?.image === "string" && work.image.trim().length > 0;
+}
+
+function artworkImageMarkup(work, title, { eager = false, className = "" } = {}) {
+  if (!hasArtworkImage(work)) {
+    return `<div class="artwork-image-placeholder${className ? ` ${className}` : ""}" role="img" aria-label="${title} · ${t("imagePending")}"><span>${t("imagePending")}</span></div>`;
+  }
+  const loading = eager ? "eager" : "lazy";
+  const classAttribute = className ? ` class="${className}"` : "";
+  return `<img${classAttribute} src="${work.image}" alt="${title}" loading="${loading}" decoding="async" />`;
+}
+
+function artworkMetaText(work) {
+  return [work?.category, work?.medium, work?.size, work?.year].filter(Boolean).join(" · ");
+}
+
 function applyLanguage() {
   document.documentElement.lang = state.language === "zh" ? "zh-CN" : "en";
   document.querySelectorAll("[data-i18n]").forEach((node) => {
@@ -807,8 +832,8 @@ function applyServerArtworks(payload) {
     const current = currentById.get(artwork?.id);
     const image = typeof artwork?.image === "string" ? artwork.image : "";
     if (
-      !["available", "held", "sold", "not_for_sale"].includes(artwork.saleStatus) ||
-      !/^\/(?:api\/media\/media-[0-9a-f-]{36}|assets\/[A-Za-z0-9][A-Za-z0-9._/-]*)$/.test(image)
+      !["available", "held", "sold", "not_for_sale", "unconfirmed"].includes(artwork.saleStatus) ||
+      (image !== "" && !/^\/(?:api\/media\/media-[0-9a-f-]{36}|assets\/[A-Za-z0-9][A-Za-z0-9._/-]*)$/.test(image))
     ) return false;
     nextWorks.push({
       id: artwork.id,

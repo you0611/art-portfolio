@@ -70,21 +70,16 @@
         document.getElementById("allWorksGrid").innerHTML = works.map((work, index) => {
           const title = lang === "zh" ? (work.titleZh || work.titleEn) : (work.titleEn || work.titleZh);
           const desc = lang === "zh" ? (work.descriptionZh || work.descriptionEn) : (work.descriptionEn || work.descriptionZh);
-          const price = work.hidePrice || !work.price ? (lang === "zh" ? "价格请咨询" : "Price on request") : work.price;
-          const status = lang === "zh"
-            ? ({ available: "可咨询", sold: "已收藏", draft: "草稿", private: "不公开" })[work.status] || work.status
-            : ({ available: "Available", sold: "Collected" })[work.status] || work.status;
-          const cat = work.category || "";
-          const med = work.medium || "";
-          const sz = work.size || "";
+          const price = ["unconfirmed", "not_for_sale"].includes(work.status) ? "—" : (work.hidePrice || !work.price ? (lang === "zh" ? "价格请咨询" : "Price on request") : work.price);
+          const status = t(work.status);
           return `
             <article class="art-card" tabindex="0">
               <a href="${workDetailHref(work.id)}" class="card-link">
-                <figure><img src="${work.image}" alt="${title}" loading="lazy" decoding="async" /></figure>
+                <figure>${artworkImageMarkup(work, title)}</figure>
                 <div class="art-card-body">
                   <div class="art-card-heading"><span class="art-card-order">${String(index + 1).padStart(2, "0")}</span><span class="badge">${status}</span></div>
                   <h3>${title}</h3>
-                  <div class="meta-line">${cat} ${med} · ${sz} · ${work.year}</div>
+                  <div class="meta-line">${artworkMetaText(work)}</div>
                   <div class="price-line">${price}</div>
                 </div>
               </a>

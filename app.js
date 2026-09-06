@@ -27,14 +27,17 @@ function renderGallery() {
   let html = "";
   works.slice(0, 8).forEach((work, index) => {
     const title = localText(work, "titleZh", "titleEn");
-    const price = work.hidePrice || !work.price ? t("priceOnRequest") : work.price;
+    const price = ["unconfirmed", "not_for_sale"].includes(work.status) ? "—" : (work.hidePrice || !work.price ? t("priceOnRequest") : work.price);
     const href = workDetailHref(work.id);
     const dynamicDetail = href.startsWith("gallery.html?");
-    html += '<article class="art-card" tabindex="0"' + (dynamicDetail ? ' data-work-id="' + work.id + '"' : '') + '><a href="' + href + '" class="card-link"><figure><img src="' + work.image + '" alt="' + title + '" loading="lazy" decoding="async" /></figure><div class="art-card-body"><div class="art-card-heading"><span class="art-card-order">' + String(index + 1).padStart(2, "0") + '</span><span class="badge">' + t(work.status) + '</span></div><h3>' + title + '</h3><div class="meta-line">' + work.medium + ' · ' + work.size + ' · ' + work.year + '</div><div class="price-line">' + price + '</div></div></a></article>';
+    html += '<article class="art-card" tabindex="0"' + (dynamicDetail ? ' data-work-id="' + work.id + '"' : '') + '><a href="' + href + '" class="card-link"><figure>' + artworkImageMarkup(work, title) + '</figure><div class="art-card-body"><div class="art-card-heading"><span class="art-card-order">' + String(index + 1).padStart(2, "0") + '</span><span class="badge">' + t(work.status) + '</span></div><h3>' + title + '</h3><div class="meta-line">' + artworkMetaText(work) + '</div><div class="price-line">' + price + '</div></div></a></article>';
   });
 
   const firstWork = works[0];
-  html += '<article class="art-card more-card"><a href="works.html" class="card-link"><img class="more-card-image" src="' + firstWork.image + '" alt="" loading="lazy" decoding="async" /><div class="more-content"><span class="more-icon" aria-hidden="true"></span><span>' + t("moreWorks") + '</span></div></a></article>';
+  const moreImage = hasArtworkImage(firstWork)
+    ? artworkImageMarkup(firstWork, "", { className: "more-card-image" })
+    : "";
+  html += '<article class="art-card more-card"><a href="works.html" class="card-link">' + moreImage + '<div class="more-content"><span class="more-icon" aria-hidden="true"></span><span>' + t("moreWorks") + '</span></div></a></article>';
   byId("artGrid").innerHTML = html;
 }
 let currentDetailId = null;
@@ -45,7 +48,7 @@ function renderDetail(workId) {
   currentDetailId = workId;
   byId("workDetail").hidden = false;
   byId("detailLayout").innerHTML = `
-    <div class="detail-image"><img src="${work.image}" alt="${localText(work, "titleZh", "titleEn")}" loading="eager" decoding="async" /></div>
+    <div class="detail-image">${artworkImageMarkup(work, localText(work, "titleZh", "titleEn"), { eager: true })}</div>
     <div class="detail-copy">
       <span class="detail-record">${work.year || ""} · ${work.medium || ""}</span>
       <h2>${localText(work, "titleZh", "titleEn")}</h2>
@@ -54,13 +57,13 @@ function renderDetail(workId) {
         <dt>${t("medium")}</dt><dd>${work.medium || "-"}</dd>
         <dt>${t("size")}</dt><dd>${work.size || "-"}</dd>
         <dt>${t("year")}</dt><dd>${work.year || "-"}</dd>
-        <dt>${t("price")}</dt><dd>${work.hidePrice || !work.price ? t("priceOnRequest") : work.price}</dd>
+        <dt>${t("price")}</dt><dd>${["unconfirmed", "not_for_sale"].includes(work.status) ? "—" : (work.hidePrice || !work.price ? t("priceOnRequest") : work.price)}</dd>
         <dt>${t("status")}</dt><dd>${t(work.status)}</dd>
       </dl>
       <p>${localText(work, "descriptionZh", "descriptionEn")}</p>
-      <a class="primary-button" href="#contact">${t("inquiry")}</a>
+      ${["unconfirmed", "not_for_sale"].includes(work.status) ? "" : `<a class="primary-button" href="#contact">${t("inquiry")}</a>`}
     </div>`;
-  byId("inquiryWork").value = work.id;
+  if (work.status === "available") byId("inquiryWork").value = work.id;
   const target = location.hash === "#contact" ? byId("contact") : byId("workDetail");
   target.scrollIntoView({ behavior: "smooth" });
 }
@@ -197,7 +200,7 @@ byId("inquiryForm").addEventListener("submit", async (event) => {
 });
 
 // 首页轮播
-const heroSlides = [
+const preferredHeroSlides = [
   "jiangnan-2024",
   "jiangnan-series-6",
   "flower-2025",
@@ -207,8 +210,15 @@ const heroSlides = [
 let heroIndex = 0;
 let heroTimer = null;
 
+function heroWorks() {
+  const visibleWithImages = visibleWorks().filter(hasArtworkImage);
+  const preferred = preferredHeroSlides.filter((id) => visibleWithImages.some((work) => work.id === id));
+  return [...new Set([...preferred, ...visibleWithImages.map((work) => work.id)])].slice(0, 5);
+}
+
 function renderHeroDots() {
-  byId("heroDots").innerHTML = heroSlides
+  const slides = heroWorks();
+  byId("heroDots").innerHTML = slides
     .map((id, i) => {
       const work = state.works.find((item) => item.id === id);
       return `<button class="${i === heroIndex ? "is-active" : ""}" data-slide="${i}" aria-label="${localText(work, "titleZh", "titleEn")}" aria-current="${i === heroIndex ? "true" : "false"}"><img src="${work.image}" alt="" /></button>`;
@@ -217,8 +227,10 @@ function renderHeroDots() {
 }
 
 function goToSlide(index) {
-  heroIndex = index;
-  const work = state.works.find((item) => item.id === heroSlides[heroIndex]);
+  const slides = heroWorks();
+  if (!slides.length) return;
+  heroIndex = Math.min(index, slides.length - 1);
+  const work = state.works.find((item) => item.id === slides[heroIndex]);
   if (!work) return;
   const img = byId("heroImage");
   img.style.opacity = 0;
@@ -226,7 +238,7 @@ function goToSlide(index) {
     img.src = work.image;
     img.alt = localText(work, "titleZh", "titleEn");
     img.style.opacity = 1;
-    byId("heroCounter").textContent = `${String(heroIndex + 1).padStart(2, "0")} / ${String(heroSlides.length).padStart(2, "0")}`;
+    byId("heroCounter").textContent = `${String(heroIndex + 1).padStart(2, "0")} / ${String(slides.length).padStart(2, "0")}`;
     byId("heroWorkHeading").textContent = localText(work, "titleZh", "titleEn");
     byId("heroWorkMeta").textContent = `${work.medium} · ${work.size} · ${work.year}`;
   }, 260);
@@ -237,7 +249,8 @@ function startSlideshow() {
   clearInterval(heroTimer);
   if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
   heroTimer = setInterval(() => {
-    goToSlide((heroIndex + 1) % heroSlides.length);
+    const slides = heroWorks();
+    if (slides.length) goToSlide((heroIndex + 1) % slides.length);
   }, 5000);
 }
 
